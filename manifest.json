@@ -1,0 +1,17 @@
+{
+  "short_name": "CyberArcade",
+  "name": "3D Cyber Arcade Mainframe",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/6893/6893233.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#05050a",
+  "theme_color": "#00ff88",
+  "display": "fullscreen",
+  "orientation": "landscape"
+}
