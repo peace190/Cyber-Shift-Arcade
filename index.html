@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Cyber Arcade - Blocks & Skins</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div id="levelDisplay">LEVEL: 1/30</div>
+        <div id="scoreDisplay">SCORE: 0 / 5</div>
+        <div id="healthBarContainer">
+            <div id="healthBar"></div>
+        </div>
+    </div>
+
+    <div id="controlsContainer">
+        <div id="joystickZone">
+            <div id="joystickKnob"></div>
+        </div>
+        <button id="actionButton">FIRE</button>
+    </div>
+
+    <div id="overlayScreen">
+        <h1 id="screenTitle">CYBER ARCADE</h1>
+        <p id="screenSubtitle">Choose your Pet Skin configuration:</p>
+        
+        <div id="colorPalette">
+            <div class="colorOption active" data-color="0x00ff88" style="background: #00ff88;"></div>
+            <div class="colorOption" data-color="0xff0055" style="background: #ff0055;"></div>
+            <div class="colorOption" data-color="0x00ffff" style="background: #00ffff;"></div>
+            <div class="colorOption" data-color="0xffaa00" style="background: #ffaa00;"></div>
+            <div class="colorOption" data-color="0x9900ff" style="background: #9900ff;"></div>
+        </div>
+
+        <button id="restartButton">START MISSION</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
