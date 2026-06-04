@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cyber Arcade Pro // Landscape v4.5</title>
+    <title>Cyber Arcade Pro // Global Edition v5.0</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,18 +13,19 @@
     <div id="rotate-device-screen">
         <div class="rotate-content">
             <div class="phone-icon">🔄</div>
-            <p>PLEASE ROTATE YOUR PHONE</p>
-            <span>Play in Landscape Mode for the ultimate console experience!</span>
+            <p>ROTATE DEVICE</p>
+            <span>Please flip your device horizontally for console layout mode.</span>
         </div>
     </div>
 
     <div id="start-menu">
         <div class="menu-content">
-            <h1 id="menu-title" class="neon-title">CYBER ARCADE</h1>
-            <p id="menu-subtitle" class="neon-subtitle">SYSTEM STATUS: READY TO LAUNCH</p>
+            <div class="brand-badge">ARCADE ENGINE v5.0</div>
+            <h1 id="menu-title" class="neon-title">CYBER SHIFT</h1>
+            <p id="menu-subtitle" class="neon-subtitle">SECTOR SECURITY MAINFRAME: ACTIVE</p>
             
             <div id="skin-section">
-                <p class="skin-prompt">CHOOSE YOUR AVATAR CORE:</p>
+                <p class="skin-prompt">SELECT AVATAR CORE COLOR:</p>
                 <div id="colorPalette">
                     <div class="colorOption active" data-color="0x00ff88" style="background: #00ff88;"></div>
                     <div class="colorOption" data-color="0xff0055" style="background: #ff0055;"></div>
@@ -35,17 +36,23 @@
             </div>
 
             <div class="menu-stats">
-                <div class="high-score-box">ALL-TIME BEST LEVEL: <span id="high-score-val">1</span></div>
-                <span class="control-help">PC: WASD / ARROWS + SPACEBAR | MOBILE: LANDSCAPE VIRTUAL PADS</span>
+                <div id="menu-high-score" class="high-score-box">ALL-TIME SECTOR RECORD: LEVEL <span id="high-score-val">1</span></div>
+                <span class="control-help">DESKTOP: WASD / ARROWS + SPACEBAR<br>MOBILE: AUTO-LANDSCAPE DUAL TOUCH PADS</span>
             </div>
             
-            <button id="play-btn" onclick="startGameApp()">INITIALIZE MISSION</button>
+            <div class="action-container">
+                <button id="play-btn" onclick="initializeSystemBoot()">LAUNCH MISSION</button>
+                <div id="boot-loader-container">
+                    <div id="boot-loader-bar"></div>
+                    <p id="boot-loader-text">CALIBRATING MATRIX...</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="ui-container">
-        <div class="hud-item"><span class="label">CORE LEVEL:</span> <span id="level-num" class="val">1</span></div>
-        <div class="hud-item"><span class="label">ELIMINATED:</span> <span id="score-num" class="val">0</span>/<span id="target-num" class="val">10</span></div>
+        <div class="hud-item"><span class="label">STAGE:</span> <span id="level-num" class="val">1</span></div>
+        <div class="hud-item"><span class="label">CLEARED:</span> <span id="score-num" class="val">0</span>/<span id="target-num" class="val">10</span></div>
         <div class="hud-item" id="lives-display">❤️❤️❤️</div>
         <div id="progress-container">
             <div id="progress-bar"></div>
