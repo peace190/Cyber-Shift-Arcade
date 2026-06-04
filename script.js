@@ -1,4 +1,4 @@
-// --- Core Engine Framework Variables ---
+// --- Core Engine Framework Scope ---
 let scene, camera, renderer;
 let playerGroup, playerCube, weaponTurret, playerMat;
 let gridHelper;
@@ -32,12 +32,12 @@ let joystickActive = false;
 let joystickStartPos = { x: 0, y: 0 };
 const joystickMaxRange = 40; 
 
-// System Web Audio Engine States
+// ADVANCED WEB AUDIO NODES (Guarantees browser playback compatibility)
 let audioCtx = null;
-let bgmOscillator = null;
-let bgmGainNode = null;
+let musicGainNode = null;
 let musicEnabled = true;
 let sfxEnabled = true;
+let audioSequenceTimer = null;
 
 const STAGE_CONFIGS = [
     { gridColor: 0x00ff88, fogColor: 0x020206, enemyShape: 'box', speedBonus: 0.0 },
@@ -47,12 +47,11 @@ const STAGE_CONFIGS = [
     { gridColor: 0xff3300, fogColor: 0x0c0101, enemyShape: 'pyramid', speedBonus: 0.045 }
 ];
 
-// Kick off initialization sequence
 initEngine();
 setupSkinSelectors();
 loadHighScore();
 buildMenuDecorations();
-setupSystemInteractions(); // Handle buttons natively inside JS to fix PC runtime error
+setupSystemInteractions();
 animateLoop();
 
 function initEngine() {
@@ -98,10 +97,7 @@ function initEngine() {
 function buildMenuDecorations() {
     const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
     for(let i=0; i<15; i++) {
-        const mat = new THREE.MeshStandardMaterial({ 
-            color: Math.random() > 0.5 ? 0x00ff88 : 0xff0055, 
-            wireframe: true 
-        });
+        const mat = new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0x00ff88 : 0xff0055, wireframe: true });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set((Math.random()-0.5)*35, Math.random()*8, (Math.random()-0.5)*35);
         scene.add(mesh);
@@ -109,51 +105,36 @@ function buildMenuDecorations() {
     }
 }
 
-// --- CORE BIND PIPELINES: FIXES THE PC INITIALIZATION ERROR ---
 function setupSystemInteractions() {
-    // Launch Mission Button Click Hook
     document.getElementById('play-btn').addEventListener('click', () => {
         initializeSystemBoot();
     });
 
-    // Modal Config Open/Close Settings
     const gearBtn = document.getElementById('settings-gear-btn');
     const settingsModal = document.getElementById('settings-modal-overlay');
     const closeSettings = document.getElementById('close-settings-btn');
 
-    gearBtn.addEventListener('click', () => {
-        settingsModal.style.display = 'flex';
-    });
-    closeSettings.addEventListener('click', () => {
-        settingsModal.style.display = 'none';
-    });
+    gearBtn.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+    closeSettings.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 
-    // Music/Audio Hardware Controls Toggles
     const bgmToggle = document.getElementById('toggle-bgm-btn');
     const sfxToggle = document.getElementById('toggle-sfx-btn');
 
     bgmToggle.addEventListener('click', () => {
         musicEnabled = !musicEnabled;
         if(musicEnabled) {
-            bgmToggle.classList.add('active');
-            bgmToggle.innerText = "ON";
-            if(bgmGainNode) bgmGainNode.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            bgmToggle.classList.add('active'); bgmToggle.innerText = "ON";
+            if(musicGainNode) musicGainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
         } else {
-            bgmToggle.classList.remove('active');
-            bgmToggle.innerText = "OFF";
-            if(bgmGainNode) bgmGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            bgmToggle.classList.remove('active'); bgmToggle.innerText = "OFF";
+            if(musicGainNode) musicGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
         }
     });
 
     sfxToggle.addEventListener('click', () => {
         sfxEnabled = !sfxEnabled;
-        if(sfxEnabled) {
-            sfxToggle.classList.add('active');
-            sfxToggle.innerText = "ON";
-        } else {
-            sfxToggle.classList.remove('active');
-            sfxToggle.innerText = "OFF";
-        }
+        if(sfxEnabled) { sfxToggle.classList.add('active'); sfxToggle.innerText = "ON"; }
+        else { sfxToggle.classList.remove('active'); sfxToggle.innerText = "OFF"; }
     });
 }
 
@@ -161,17 +142,18 @@ function initializeSystemBoot() {
     if (navigator.userAgent.match(/Android|iPhone|iPad|iPod/i)) {
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().then(() => {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {});
-                }
+                if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(() => {}); }
             }).catch(() => {});
         }
     }
 
-    // Audio Engine Handshake Context Boot Up
+    // ACTIVATE SOUND TRACK ARCHITECTURE ON USER TOUCH INTERACTION GESTURE
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        startSynthLoop();
+        musicGainNode = audioCtx.createGain();
+        musicGainNode.gain.setValueAtTime(musicEnabled ? 0.12 : 0, audioCtx.currentTime);
+        musicGainNode.connect(audioCtx.destination);
+        runArcadeAudioEngine(); // Start the melodic tracker sequence
     }
 
     document.getElementById('play-btn').style.display = 'none';
@@ -181,7 +163,7 @@ function initializeSystemBoot() {
 
     let pct = 0;
     const interval = setInterval(() => {
-        pct += 4;
+        pct += 5;
         loaderBar.style.width = pct + '%';
         if (pct >= 100) {
             clearInterval(interval);
@@ -189,9 +171,72 @@ function initializeSystemBoot() {
                 loaderContainer.style.display = 'none';
                 document.getElementById('play-btn').style.display = 'inline-block';
                 startGameApp();
-            }, 150);
+            }, 100);
         }
-    }, 30);
+    }, 25);
+}
+
+// --- FULL CHIPTUNE TRACK STEPPER RUNTIME SYSTEM ---
+function runArcadeAudioEngine() {
+    let step = 0;
+    // Upbeat classic cyber melody array note tracking maps
+    const bassline = [110, 110, 130, 130, 146, 146, 164, 164]; 
+    const melody = [220, 261, 293, 329, 392, 329, 293, 261];
+
+    audioSequenceTimer = setInterval(() => {
+        if (!musicEnabled || !audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        // 1. Play continuous bass kick rhythm
+        const bassOsc = audioCtx.createOscillator();
+        const bassGain = audioCtx.createGain();
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.setValueAtTime(bassline[step % bassline.length], now);
+        bassGain.gain.setValueAtTime(0.2, now);
+        bassGain.gain.linearRampToValueAtTime(0, now + 0.18);
+        bassOsc.connect(bassGain);
+        bassGain.connect(musicGainNode);
+        bassOsc.start(now); bassOsc.stop(now + 0.2);
+
+        // 2. Play rapid syncopated arcade lead melody bars
+        if (step % 2 === 0) {
+            const leadOsc = audioCtx.createOscillator();
+            const leadGain = audioCtx.createGain();
+            leadOsc.type = 'square';
+            leadOsc.frequency.setValueAtTime(melody[(step + 2) % melody.length], now);
+            leadGain.gain.setValueAtTime(0.06, now);
+            leadGain.gain.linearRampToValueAtTime(0, now + 0.25);
+            leadOsc.connect(leadGain);
+            leadGain.connect(musicGainNode);
+            leadOsc.start(now); leadOsc.stop(now + 0.28);
+        }
+
+        step++;
+    }, 220); // Steady energetic 136BPM tempo rhythm pace
+}
+
+function playSoundFX(type) {
+    if (!audioCtx || !sfxEnabled) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+
+    if (type === 'laser') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+        gainNode.gain.setValueAtTime(0.06, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.08);
+        osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'explosion') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+        gainNode.gain.setValueAtTime(0.12, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'damage') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(100, now);
+        gainNode.gain.setValueAtTime(0.18, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.12);
+        osc.start(now); osc.stop(now + 0.12);
+    }
 }
 
 function startGameApp() {
@@ -201,12 +246,10 @@ function startGameApp() {
     enemiesArray.forEach(e => scene.remove(e));
     projectilesArray.forEach(p => scene.remove(p.mesh));
     enemiesArray = []; projectilesArray = [];
-
     decorationCubes.forEach(c => scene.remove(c));
     decorationCubes = [];
 
-    gameStarted = true;
-    isGameOver = false;
+    gameStarted = true; isGameOver = false;
     score = 0; currentLevel = 1; targetKills = 10; playerLives = 3;
     
     playerGroup.position.set(0, 0, 0);
@@ -432,11 +475,11 @@ function runGameOverState() {
     titleNode.innerText = "MISSION FAILED";
     titleNode.classList.add('game-over-active');
     
-    document.getElementById('menu-subtitle').innerText = "CORE STRUCTURE REACHED CRITICAL INTEGRITY FAILURE";
+    document.getElementById('menu-subtitle').innerText = "CORE INTEGRITY FAILURE DETECTED";
     document.getElementById('skin-section').style.display = 'none'; 
     
     const savedHi = localStorage.getItem('cyber_arcade_hi_lvl') || 1;
-    document.getElementById('menu-high-score').innerHTML = `STAGE DEFICIT RECOVERED<br>ELIMINATION PROFILE OUTCOME: LEVEL ${currentLevel}<br><span style="color:#ffff00">HIGHEST TARGET: LEVEL ${savedHi}</span>`;
+    document.getElementById('menu-high-score').innerHTML = `OUTCOME: LEVEL ${currentLevel}<br><span style="color:#ffff00">RECORD: LEVEL ${savedHi}</span>`;
     
     document.getElementById('play-btn').innerText = "TRY AGAIN";
     document.getElementById('start-menu').style.visibility = 'visible';
@@ -464,55 +507,6 @@ function setupSkinSelectors() {
             if (playerMat) playerMat.color.setHex(selectedHex);
         });
     });
-}
-
-// --- SYNTHESIZED PROCEDURAL BACKGROUND AUDIO GENERATION CIRCUITS ---
-function playSoundFX(type) {
-    if (!audioCtx || !sfxEnabled) return;
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-    const now = audioCtx.currentTime;
-
-    if (type === 'laser') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(750, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        gainNode.gain.setValueAtTime(0.08, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
-        osc.start(now); osc.stop(now + 0.1);
-    } else if (type === 'explosion') {
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
-        gainNode.gain.setValueAtTime(0.15, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
-        osc.start(now); osc.stop(now + 0.2);
-    } else if (type === 'damage') {
-        osc.type = 'square'; osc.frequency.setValueAtTime(90, now);
-        gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
-        osc.start(now); osc.stop(now + 0.15);
-    }
-}
-
-function startSynthLoop() {
-    // Continuous Background Baseline Generator
-    bgmOscillator = audioCtx.createOscillator();
-    bgmGainNode = audioCtx.createGain();
-    
-    bgmOscillator.type = 'triangle'; 
-    bgmOscillator.frequency.setValueAtTime(58.27, audioCtx.currentTime); // Deep retro C# bass chord note
-    
-    // Low initial ambient volume layout
-    bgmGainNode.gain.setValueAtTime(musicEnabled ? 0.02 : 0, audioCtx.currentTime);
-    
-    bgmOscillator.connect(bgmGainNode); 
-    bgmGainNode.connect(audioCtx.destination);
-    bgmOscillator.start();
-
-    // Setup an infinite sequenced retro melody rhythm track note changer loop
-    setInterval(() => {
-        if (!musicEnabled || !audioCtx) return;
-        const notes = [58.27, 65.41, 73.42, 87.31]; // Looping chiptune note progression matrix
-        const nextNote = notes[Math.floor(Math.random() * notes.length)];
-        bgmOscillator.frequency.exponentialRampToValueAtTime(nextNote, audioCtx.currentTime + 0.1);
-    }, 800);
 }
 
 function createExplosionFX(position, colorHex) {
