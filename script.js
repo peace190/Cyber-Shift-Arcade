@@ -1,3 +1,4 @@
+// --- Core Engine Framework Scope ---
 let scene, camera, renderer;
 let playerGroup, playerCube, weaponTurret, playerMat;
 let gridHelper;
@@ -19,38 +20,46 @@ let lastFireTime = 0;
 const fireCooldown = 150; 
 let isFiringPressed = false;
 
-// Better balanced overhead isometric camera angles
-const cameraOffset = new THREE.Vector3(0, 10.0, 7.5);
+// Perfectly balanced isometric overhead view coordinates
+const cameraOffset = new THREE.Vector3(0, 10.5, 7.5);
 let moveVector = { x: 0, z: 0 };
+const keysPressed = {
+    w: false, a: false, s: false, d: false,
+    W: false, A: false, S: false, D: false,
+    ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+};
 
 let joystickActive = false;
 let joystickStartPos = { x: 0, y: 0 };
 const joystickMaxRange = 35; 
 
-// SYNTH TRACK GENERATOR MATRIX
+// WEB AUDIO SYSTEM ARCHITECTURE
 let audioCtx = null;
 let musicGainNode = null;
 let audioSequenceTimer = null;
+let musicEnabled = true;
+let sfxEnabled = true;
 
 const STAGE_CONFIGS = [
     { gridColor: 0x00ff88, fogColor: 0x020206, speedBonus: 0.0 },
-    { gridColor: 0x00ffff, fogColor: 0x01050a, speedBonus: 0.015 },
-    { gridColor: 0xff00ff, fogColor: 0x06010a, speedBonus: 0.025 }
+    { gridColor: 0x00ffff, fogColor: 0x01050a, speedBonus: 0.012 },
+    { gridColor: 0xff00ff, fogColor: 0x06010a, speedBonus: 0.022 }
 ];
 
 initEngine();
 setupSkinSelectors();
 loadHighScore();
 buildMenuDecorations();
+setupSystemInteractions();
 setupInputs();
 animateLoop();
 
 function initEngine() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(STAGE_CONFIGS[0].fogColor);
-    scene.fog = new THREE.FogExp2(STAGE_CONFIGS[0].fogColor, 0.05);
+    scene.fog = new THREE.FogExp2(STAGE_CONFIGS[0].fogColor, 0.045);
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -60,17 +69,17 @@ function initEngine() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.85);
     directionalLight.position.set(5, 15, 5);
     scene.add(directionalLight);
 
     playerGroup = new THREE.Group();
-    playerMat = new THREE.MeshStandardMaterial({ color: activePetColor, roughness: 0.2 });
+    playerMat = new THREE.MeshStandardMaterial({ color: activePetColor, roughness: 0.15 });
     playerCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), playerMat);
     playerCube.position.y = 0.5;
     playerGroup.add(playerCube);
 
-    weaponTurret = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+    weaponTurret = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x1a1a24 }));
     weaponTurret.rotation.x = Math.PI / 2;
     weaponTurret.position.set(0, 0.5, -0.4);
     playerGroup.add(weaponTurret);
@@ -82,9 +91,9 @@ function initEngine() {
 }
 
 function buildMenuDecorations() {
-    for(let i=0; i<10; i++) {
+    for(let i=0; i<12; i++) {
         const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshStandardMaterial({ color: 0x00ff88, wireframe: true }));
-        mesh.position.set((Math.random()-0.5)*25, Math.random()*5, (Math.random()-0.5)*25);
+        mesh.position.set((Math.random()-0.5)*30, Math.random()*6, (Math.random()-0.5)*30);
         scene.add(mesh);
         decorationCubes.push(mesh);
     }
@@ -92,64 +101,92 @@ function buildMenuDecorations() {
 
 function buildLevelGrid(hexColor) {
     if (gridHelper) scene.remove(gridHelper);
-    gridHelper = new THREE.GridHelper(80, 80, hexColor, 0x111118);
+    gridHelper = new THREE.GridHelper(80, 80, hexColor, 0x101016);
     scene.add(gridHelper);
 }
 
-// LEGENDARY RETRO SYNTH TRACK GENERATOR LOOP
+// LEGENDARY RETRO SYNTH TRACK SEQUENCER PACING
 function runLegendaryAudioEngine() {
     let step = 0;
-    // Energetic driving progressions (A Minor variant chords)
-    const bassNotes = [110, 110, 98, 98, 87, 87, 130, 110]; 
-    const leadNotes = [220, 261, 293, 329, 392, 329, 440, 392];
+    // Heavy electronic tracking loops (A Minor Driving Scale Pattern Progression)
+    const bassline = [110, 110, 98, 98, 87, 87, 130, 110]; 
+    const melody = [220, 261, 293, 329, 392, 329, 440, 392];
 
     audioSequenceTimer = setInterval(() => {
-        if (!audioCtx) return;
+        if (!musicEnabled || !audioCtx) return;
         const now = audioCtx.currentTime;
 
-        // Base Heavy Rhythm Track
+        // Heavy Base Beats Layer
         const bassOsc = audioCtx.createOscillator();
         const bassGain = audioCtx.createGain();
         bassOsc.type = 'triangle';
-        bassOsc.frequency.setValueAtTime(bassNotes[step % bassNotes.length], now);
-        bassGain.gain.setValueAtTime(0.25, now);
-        bassGain.gain.linearRampToValueAtTime(0, now + 0.2);
+        bassOsc.frequency.setValueAtTime(bassline[step % bassline.length], now);
+        bassGain.gain.setValueAtTime(0.24, now);
+        bassGain.gain.linearRampToValueAtTime(0, now + 0.18);
         bassOsc.connect(bassGain); bassGain.connect(musicGainNode);
-        bassOsc.start(now); bassOsc.stop(now + 0.22);
+        bassOsc.start(now); bassOsc.stop(now + 0.2);
 
-        // Arpeggiated Melody Lead
+        // Arpeggiated Melody Layer
         if (step % 2 === 0) {
             const leadOsc = audioCtx.createOscillator();
             const leadGain = audioCtx.createGain();
             leadOsc.type = 'square';
-            leadOsc.frequency.setValueAtTime(leadNotes[(step + 3) % leadNotes.length], now);
-            leadGain.gain.setValueAtTime(0.05, now);
-            leadGain.gain.linearRampToValueAtTime(0, now + 0.3);
+            leadOsc.frequency.setValueAtTime(melody[(step + 2) % melody.length], now);
+            leadGain.gain.setValueAtTime(0.06, now);
+            leadGain.gain.linearRampToValueAtTime(0, now + 0.28);
             leadOsc.connect(leadGain); leadGain.connect(musicGainNode);
-            leadOsc.start(now); leadOsc.stop(now + 0.32);
+            leadOsc.start(now); leadOsc.stop(now + 0.3);
         }
         step++;
-    }, 200); // Fast, energetic pacing
+    }, 210); 
 }
 
 function playSoundFX(type) {
-    if (!audioCtx) return;
+    if (!audioCtx || !sfxEnabled) return;
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
 
     if (type === 'laser') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(700, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
-        gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.08);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(750, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+        gain.gain.setValueAtTime(0.06, now); gain.gain.linearRampToValueAtTime(0, now + 0.08);
         osc.start(now); osc.stop(now + 0.08);
     } else if (type === 'explosion') {
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(20, now + 0.15);
-        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+        gain.gain.setValueAtTime(0.12, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
         osc.start(now); osc.stop(now + 0.15);
     }
+}
+
+function setupSystemInteractions() {
+    const gearBtn = document.getElementById('settings-gear-btn');
+    const modalOverlay = document.getElementById('settings-modal-overlay');
+    const closeModal = document.getElementById('close-settings-btn');
+    const bgmToggle = document.getElementById('toggle-bgm-btn');
+    const sfxToggle = document.getElementById('toggle-sfx-btn');
+
+    gearBtn.addEventListener('click', () => { modalOverlay.style.display = 'flex'; });
+    closeModal.addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+
+    bgmToggle.addEventListener('click', () => {
+        musicEnabled = !musicEnabled;
+        if(musicEnabled) {
+            bgmToggle.classList.add('active'); bgmToggle.innerText = "ON";
+            if(musicGainNode) musicGainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        } else {
+            bgmToggle.classList.remove('active'); bgmToggle.innerText = "OFF";
+            if(musicGainNode) musicGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+    });
+
+    sfxToggle.addEventListener('click', () => {
+        sfxEnabled = !sfxEnabled;
+        if(sfxEnabled) { sfxToggle.classList.add('active'); sfxToggle.innerText = "ON"; }
+        else { sfxToggle.classList.remove('active'); sfxToggle.innerText = "OFF"; }
+    });
 }
 
 function setupInputs() {
@@ -157,7 +194,7 @@ function setupInputs() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             musicGainNode = audioCtx.createGain();
-            musicGainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            musicGainNode.gain.setValueAtTime(musicEnabled ? 0.15 : 0, audioCtx.currentTime);
             musicGainNode.connect(audioCtx.destination);
             runLegendaryAudioEngine();
         }
@@ -177,11 +214,22 @@ function setupInputs() {
                     loaderContainer.style.display = 'none';
                     document.getElementById('play-btn').style.display = 'inline-block';
                     startGameApp();
-                }, 150);
+                }, 100);
             }
-        }, 30);
+        }, 25);
     });
 
+    // KEYBOARD LISTENER SYSTEMS (PC SUPPORT)
+    window.addEventListener('keydown', (e) => {
+        if (e.key in keysPressed) keysPressed[e.key] = true;
+        if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key in keysPressed) keysPressed[e.key] = false;
+        if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = false;
+    });
+
+    // MOBILE TOUCH INTERFACE
     const joyZone = document.getElementById('joystick-zone');
     const joyStick = document.getElementById('joystick-stick');
     const fireButton = document.getElementById('fire-btn');
@@ -230,6 +278,17 @@ function setupInputs() {
     window.addEventListener('touchend', (e) => { if (isFiringPressed && e.touches.length === 0) isFiringPressed = false; });
 }
 
+function processKeyboardVectors() {
+    if (joystickActive) return;
+    let dx = 0, dz = 0;
+    if (keysPressed.a || keysPressed.A || keysPressed.ArrowLeft) dx -= 1;
+    if (keysPressed.d || keysPressed.D || keysPressed.ArrowRight) dx += 1;
+    if (keysPressed.w || keysPressed.W || keysPressed.ArrowUp) dz -= 1;
+    if (keysPressed.s || keysPressed.S || keysPressed.ArrowDown) dz += 1;
+    if (dx !== 0 && dz !== 0) { dx *= 0.7071; dz *= 0.7071; }
+    moveVector.x = dx; moveVector.z = dz;
+}
+
 function startGameApp() {
     document.getElementById('start-menu').style.opacity = '0';
     document.getElementById('start-menu').style.visibility = 'hidden';
@@ -263,7 +322,7 @@ function spawnEnemy() {
 }
 
 function spawnEnemyWave() {
-    for (let i = 0; i < 6; i++) spawnEnemy();
+    for (let i = 0; i < 5; i++) spawnEnemy();
 }
 
 function fireProjectile() {
@@ -290,13 +349,15 @@ function fireProjectile() {
 
     mesh.lookAt(playerGroup.position.clone().add(dir).add(new THREE.Vector3(0,0.5,0)));
     scene.add(mesh);
-    projectilesArray.push({ mesh: mesh, velocity: dir.multiplyScalar(0.6), life: 60 });
+    projectilesArray.push({ mesh: mesh, velocity: dir.multiplyScalar(0.65), life: 60 });
 }
 
 function updateGamePhysics() {
+    processKeyboardVectors();
+
     if (moveVector.x !== 0 || moveVector.z !== 0) {
-        playerGroup.position.x += moveVector.x * 0.14;
-        playerGroup.position.z += moveVector.z * 0.14;
+        playerGroup.position.x += moveVector.x * 0.15;
+        playerGroup.position.z += moveVector.z * 0.15;
         playerGroup.rotation.y = Math.atan2(-moveVector.x, -moveVector.z);
     }
 
@@ -307,7 +368,7 @@ function updateGamePhysics() {
         if (p.life <= 0) { scene.remove(p.mesh); projectilesArray.splice(i, 1); }
     }
 
-    const speed = 0.04 + (currentLevel * 0.005);
+    const speed = 0.038 + (currentLevel * 0.005);
     for (let i = enemiesArray.length - 1; i >= 0; i--) {
         const enemy = enemiesArray[i];
         const heading = new THREE.Vector3().subVectors(playerGroup.position, enemy.position);
@@ -324,13 +385,14 @@ function updateGamePhysics() {
 
         for (let j = projectilesArray.length - 1; j >= 0; j--) {
             const b = projectilesArray[j];
-            if (b.mesh.position.distanceTo(enemy.position) < 0.7) {
+            if (b.mesh.position.distanceTo(enemy.position) < 0.75) {
                 playSoundFX('explosion');
                 scene.remove(enemy); enemiesArray.splice(i, 1);
                 scene.remove(b.mesh); projectilesArray.splice(j, 1);
                 score++; updateInterfaceLayout();
                 if (score >= targetKills) {
-                    currentLevel++; score = 0; targetKills += 5;
+                    currentLevel++; score = 0; targetKills += 4;
+                    if(STAGE_CONFIGS[currentLevel-1]) buildLevelGrid(STAGE_CONFIGS[currentLevel-1].gridColor);
                     updateInterfaceLayout();
                 }
                 break;
@@ -373,7 +435,7 @@ function setupSkinSelectors() {
 }
 
 function loadHighScore() {
-    document.getElementById('high-score-val').innerText = "2";
+    document.getElementById('high-score-val').innerText = "1";
 }
 
 function animateLoop() {

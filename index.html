@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Shift Pro</title>
+    <title>Cyber Shift Arcade</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,18 +14,18 @@
         <div class="rotate-content">
             <div class="phone-icon">🔄</div>
             <p>ROTATE DEVICE</p>
-            <span>Please flip your phone horizontally to play!</span>
+            <span>Please turn your device horizontally to play!</span>
         </div>
     </div>
 
     <div id="start-menu">
         <div class="menu-content">
-            <div class="brand-badge">ARCADE ENGINE v5.6</div>
+            <div class="brand-badge">SYSTEM PORTAL v6.0</div>
             <h1 id="menu-title" class="neon-title">CYBER SHIFT</h1>
-            <p id="menu-subtitle" class="neon-subtitle">SYSTEM STATUS: READY</p>
+            <p id="menu-subtitle" class="neon-subtitle">AUDIO MATRIX: ONLINE</p>
             
             <div id="skin-section">
-                <p class="skin-prompt">SELECT AVATAR CORE COLOR:</p>
+                <p class="skin-prompt">CHOOSE AVATAR CORE COLOR:</p>
                 <div id="colorPalette">
                     <div class="colorOption active" data-color="0x00ff88" style="background: #00ff88;"></div>
                     <div class="colorOption" data-color="0xff0055" style="background: #ff0055;"></div>
@@ -37,14 +37,14 @@
 
             <div class="menu-stats">
                 <div id="menu-high-score" class="high-score-box">SECTOR RECORD: LEVEL <span id="high-score-val">1</span></div>
-                <span class="control-help">MOBILE: DUAL TOUCH PADS (HOLD LANDSCAPE)</span>
+                <span class="control-help">PC: WASD + SPACEBAR | MOBILE: ON-SCREEN PADS</span>
             </div>
             
             <div class="action-container">
                 <button id="play-btn">LAUNCH MISSION</button>
                 <div id="boot-loader-container">
                     <div id="boot-loader-bar"></div>
-                    <p id="boot-loader-text">INITIALIZING AUDIO MATRIX...</p>
+                    <p id="boot-loader-text">SYNCING SOUND MATRIX...</p>
                 </div>
             </div>
         </div>
@@ -56,6 +56,23 @@
         <div class="hud-item" id="lives-display">❤️❤️❤️</div>
         <div id="progress-container">
             <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="settings-gear-btn">⚙️</div>
+
+    <div id="settings-modal-overlay">
+        <div class="modal-box">
+            <h3>SYSTEM CONFIG</h3>
+            <div class="setting-row">
+                <span>BACKGROUND MUSIC</span>
+                <button id="toggle-bgm-btn" class="toggle-btn active">ON</button>
+            </div>
+            <div class="setting-row">
+                <span>SOUND EFFECTS</span>
+                <button id="toggle-sfx-btn" class="toggle-btn active">ON</button>
+            </div>
+            <button id="close-settings-btn">RESUME CORE</button>
         </div>
     </div>
 
