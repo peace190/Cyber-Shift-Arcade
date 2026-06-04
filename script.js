@@ -1,430 +1,468 @@
-// ============================================================================
-// 1. GAME DATA STATE MANAGEMENT
-// ============================================================================
-let currentLevel = 1;
-const maxLevels = 30;
-let score = 0;
-let playerHealth = 100;
-let playerLives = 3; 
-let isGameOver = false;
-let gameStarted = false; 
-let selectedPetColor = 0x00ff88; 
+// --- Core Framework Engine Matrices ---
+let scene, camera, renderer;
+let playerGroup, playerCube, weaponTurret, playerMat;
+let gridHelper;
 
-// Entities Pools
+let gameStarted = false;
+let isGameOver = false;
+let currentLevel = 1;
+let score = 0;
+let targetKills = 10;
+let playerLives = 3;
+let activePetColor = 0x00ff88;
+
 let enemiesArray = [];
 let projectilesArray = [];
-let blocksObstaclesArray = []; // Stores physical 3D map blocks
-let enemySpawnTimer = null;
+let particlesArray = [];
 
-function getLevelSettings(level) {
-    let speed, spawnRate, targetKills, bg, grid, blockCount;
-    if (level === 1) {
-        targetKills = 10; spawnRate = 600; speed = 0.08;
-        bg = 0x030206; grid = 0xff0055; blockCount = 8; // 8 blocks on level 1
-    } else if (level === 2) {
-        targetKills = 15; spawnRate = 1800; speed = 0.03;
-        bg = 0x050b14; grid = 0x00ff88; blockCount = 15; // More blocks on level 2
-    } else {
-        targetKills = 15 + (level * 2);
-        spawnRate = Math.max(1600 - (level * 45), 300);
-        speed = 0.03 + (level * 0.003);
-        bg = level % 2 === 0 ? 0x0b0514 : 0x050a0a; 
-        grid = level % 3 === 0 ? 0x9900ff : 0x00ffff;
-        blockCount = 15 + level; 
-    }
-    return { targetScore: targetKills, spawnInterval: spawnRate, enemySpeed: speed, backgroundColor: bg, gridColor: grid, maxBlocks: blockCount };
+// Automatic Weapon Config Settings
+let lastFireTime = 0;
+const fireCooldown = 150; // Sweeter, faster firing response rate
+let isFiringPressed = false;
+
+// Widescreen High-Angle Landscape Camera Coordinate Offsets
+const cameraOffset = new THREE.Vector3(0, 10.5, 8.0);
+let moveVector = { x: 0, z: 0 };
+const keysPressed = {
+    w: false, a: false, s: false, d: false,
+    W: false, A: false, S: false, D: false,
+    ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+};
+
+// Hardcoded Native Mobile Touch Tracking Matrices
+let joystickActive = false;
+let joystickStartPos = { x: 0, y: 0 };
+const joystickMaxRange = 40; // Extended touch bound range for landscape layouts
+
+let audioCtx = null;
+
+// Initialize Core Framework
+initEngine();
+setupSkinSelectors();
+loadHighScore();
+animateLoop();
+
+function initEngine() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020206);
+    scene.fog = new THREE.FogExp2(0x020206, 0.04);
+
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0x00ffff, 0.9);
+    directionalLight.position.set(12, 25, 12);
+    scene.add(directionalLight);
+
+    // Build Composed Character Core Mesh
+    playerGroup = new THREE.Group();
+    
+    const bodyGeo = new THREE.BoxGeometry(1, 1, 1);
+    playerMat = new THREE.MeshStandardMaterial({ color: activePetColor, roughness: 0.1, metalness: 0.1 });
+    playerCube = new THREE.Mesh(bodyGeo, playerMat);
+    playerCube.position.y = 0.5;
+    playerGroup.add(playerCube);
+
+    const turretGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.6, 8);
+    const turretMat = new THREE.MeshStandardMaterial({ color: 0x222a36, metalness: 0.8, roughness: 0.2 });
+    weaponTurret = new THREE.Mesh(turretGeo, turretMat);
+    weaponTurret.rotation.x = Math.PI / 2;
+    weaponTurret.position.set(0, 0.55, -0.45);
+    playerGroup.add(weaponTurret);
+
+    scene.add(playerGroup);
+
+    buildLevelGrid(0x00ff88);
+    setupInputs();
+    window.addEventListener('resize', onWindowResize);
 }
 
-let activeSettings = getLevelSettings(currentLevel);
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startSynthLoop();
+    }
+}
 
-// ============================================================================
-// 2. THREE.JS FOUNDATION
-// ============================================================================
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05050a);
-scene.fog = new THREE.FogExp2(0x05050a, 0.03);
+function playSoundFX(type) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-const canvas = document.getElementById('gameCanvas');
-const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if (type === 'laser') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+        gainNode.gain.setValueAtTime(0.12, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'explosion') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+        gainNode.gain.setValueAtTime(0.25, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'damage') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(100, now);
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    }
+}
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(20, 40, 20);
-scene.add(dirLight);
+function startSynthLoop() {
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(55, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+}
 
-let gridHelper = new THREE.GridHelper(500, 100, 0x00ff88, 0x111122);
-scene.add(gridHelper);
+function createExplosionFX(position, colorHex) {
+    const particleCount = 12;
+    const geo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
-// ============================================================================
-// 3. PLAYER ENTITY GENERATION
-// ============================================================================
-const playerGroup = new THREE.Group();
-const bodyGeo = new THREE.BoxGeometry(1, 1.2, 1);
-const bodyMat = new THREE.MeshStandardMaterial({ color: selectedPetColor, roughness: 0.1 });
-const playerMesh = new THREE.Mesh(bodyGeo, bodyMat);
-playerMesh.position.y = 0.6;
-playerGroup.add(playerMesh);
-
-const visorGeo = new THREE.BoxGeometry(0.8, 0.2, 0.2);
-const visorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const visor = new THREE.Mesh(visorGeo, visorMat);
-visor.position.set(0, 0.8, -0.51);
-playerGroup.add(visor);
-
-scene.add(playerGroup);
-const cameraOffset = new THREE.Vector3(0, 7, 9);
-
-// ============================================================================
-// 4. MAP BLOCK GENERATOR ENGINE (Obstacles Layer)
-// ============================================================================
-function generateObstacleBlocks() {
-    // Clear out old block instances from previous runs
-    blocksObstaclesArray.forEach(b => scene.remove(b.mesh));
-    blocksObstaclesArray = [];
-
-    const blockMaterial = new THREE.MeshStandardMaterial({ color: 0x444455, roughness: 0.5, metalness: 0.2 });
-
-    for (let i = 0; i < activeSettings.maxBlocks; i++) {
-        // Generate varying block shapes (tall walls, wide cubes)
-        const w = 2 + Math.random() * 4;
-        const h = 2 + Math.random() * 5;
-        const d = 2 + Math.random() * 4;
-        const geo = new THREE.BoxGeometry(w, h, d);
-        const mesh = new THREE.Mesh(geo, blockMaterial);
-
-        // Place them within the active gameplay map boundaries, far from origin spawn
-        let posX, posZ;
-        do {
-            posX = (Math.random() - 0.5) * 80;
-            posZ = (Math.random() - 0.5) * 80;
-        } while (Math.abs(posX) < 8 && Math.abs(posZ) < 8); // Never trap player on startup spawning coordinates
-
-        mesh.position.set(posX, h / 2, posZ);
+    for (let i = 0; i < particleCount; i++) {
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(position);
+        const velocity = new THREE.Vector3((Math.random() - 0.5) * 0.22, Math.random() * 0.18, (Math.random() - 0.5) * 0.22);
         scene.add(mesh);
-
-        // Map dimensions to calculation metrics for bounding configurations
-        blocksObstaclesArray.push({
-            mesh: mesh,
-            minX: posX - w/2, maxX: posX + w/2,
-            minZ: posZ - d/2, maxZ: posZ + d/2
-        });
+        particlesArray.push({ mesh: mesh, velocity: velocity, life: 30 + Math.random() * 15 });
     }
 }
 
-// Solid Object Wall Collision Detection Formula (AABB)
-function checkBlockCollisions(nextX, nextZ, radius = 0.5) {
-    for (let i = 0; i < blocksObstaclesArray.length; i++) {
-        const b = blocksObstaclesArray[i];
-        if (nextX + radius > b.minX && nextX - radius < b.maxX &&
-            nextZ + radius > b.minZ && nextZ - radius < b.maxZ) {
-            return true; // Hit a wall!
+function updateParticles() {
+    for (let i = particlesArray.length - 1; i >= 0; i--) {
+        const p = particlesArray[i];
+        p.mesh.position.add(p.velocity);
+        p.velocity.y -= 0.004;
+        p.life--;
+        p.mesh.scale.multiplyScalar(0.94);
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            particlesArray.splice(i, 1);
         }
     }
-    return false;
 }
 
-// ============================================================================
-// 5. COMBAT SYSTEM UTILITIES
-// ============================================================================
-function spawnEnemy() {
-    if (isGameOver || !gameStarted) return;
-    const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-    const mat = new THREE.MeshStandardMaterial({ color: currentLevel === 1 ? 0xff0033 : 0xffaa00 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.y = 0.45;
+function loadHighScore() {
+    const saved = localStorage.getItem('cyber_arcade_hi_lvl') || 1;
+    document.getElementById('high-score-val').innerText = saved;
+}
 
-    const angle = Math.random() * Math.PI * 2;
-    const spawnRadius = 25 + Math.random() * 10;
-    mesh.position.x = playerGroup.position.x + Math.cos(angle) * spawnRadius;
-    mesh.position.z = playerGroup.position.z + Math.sin(angle) * spawnRadius;
+function saveHighScore() {
+    const saved = parseInt(localStorage.getItem('cyber_arcade_hi_lvl') || 1);
+    if (currentLevel > saved) localStorage.setItem('cyber_arcade_hi_lvl', currentLevel);
+}
 
-    scene.add(mesh);
-    enemiesArray.push(mesh);
+function setupSkinSelectors() {
+    const palOptions = document.querySelectorAll('.colorOption');
+    palOptions.forEach(box => {
+        box.addEventListener('click', (e) => {
+            palOptions.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            const selectedHex = parseInt(e.target.getAttribute('data-color'));
+            activePetColor = selectedHex;
+            if (playerMat) playerMat.color.setHex(selectedHex);
+        });
+    });
+}
+
+function startGameApp() {
+    initAudio();
+    document.getElementById('start-menu').style.opacity = '0';
+    document.getElementById('start-menu').style.visibility = 'hidden';
+    
+    enemiesArray.forEach(e => scene.remove(e));
+    projectilesArray.forEach(p => scene.remove(p.mesh));
+    enemiesArray = []; projectilesArray = [];
+
+    gameStarted = true;
+    isGameOver = false;
+    score = 0; currentLevel = 1; targetKills = 10; playerLives = 3;
+    
+    playerGroup.position.set(0, 0, 0);
+    buildLevelGrid(0x00ff88);
+    updateInterfaceLayout();
+    spawnEnemyWave();
+}
+
+function buildLevelGrid(hexColor) {
+    if (gridHelper) scene.remove(gridHelper);
+    gridHelper = new THREE.GridHelper(80, 80, hexColor, 0x111622);
+    scene.add(gridHelper);
+}
+
+// --- SECURE DUAL-THUMB TOUCH EVENT HANDLING PIPELINES ---
+function setupInputs() {
+    // 1. Keyboard Tracking Matrix Maps
+    window.addEventListener('keydown', (e) => {
+        if (e.key in keysPressed) keysPressed[e.key] = true;
+        if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key in keysPressed) keysPressed[e.key] = false;
+        if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = false;
+    });
+
+    // 2. Mobile Joystick Capture
+    const joyZone = document.getElementById('joystick-zone');
+    const joyStick = document.getElementById('joystick-stick');
+    const fireButton = document.getElementById('fire-btn');
+
+    joyZone.addEventListener('touchstart', (e) => {
+        joystickActive = true;
+        const touch = e.touches[0];
+        // Lock center position coordinates instantly on start
+        const rect = joyZone.getBoundingClientRect();
+        joystickStartPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!joystickActive) return;
+        
+        let activeTouch = null;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].clientX < window.innerWidth / 2) {
+                activeTouch = e.touches[i];
+                break;
+            }
+        }
+        if (!activeTouch) return;
+
+        const dx = activeTouch.clientX - joystickStartPos.x;
+        const dz = activeTouch.clientY - joystickStartPos.y;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        
+        let limitRadius = Math.min(dist, joystickMaxRange);
+        let theta = Math.atan2(dz, dx);
+        
+        const finalX = Math.cos(theta) * limitRadius;
+        const finalZ = Math.sin(theta) * limitRadius;
+        
+        joyStick.style.transform = `translate(${finalX}px, ${finalZ}px)`;
+
+        // Update exact direction physics engines
+        moveVector.x = finalX / joystickMaxRange;
+        moveVector.z = finalZ / joystickMaxRange;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        let leftThumbStillActive = false;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].clientX < window.innerWidth / 2) leftThumbStillActive = true;
+        }
+        if (!leftThumbStillActive && joystickActive) {
+            joystickActive = false;
+            moveVector = { x: 0, z: 0 };
+            joyStick.style.transform = `translate(0px, 0px)`;
+        }
+    }, { passive: true });
+
+    // 3. Isolated Right Hand Fire Button Loops
+    fireButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isFiringPressed = true;
+    });
+    window.addEventListener('touchend', (e) => {
+        if (isFiringPressed && e.touches.length === 0) isFiringPressed = false;
+    });
+}
+
+function processKeyboardVectors() {
+    if (joystickActive) return;
+    let dx = 0, dz = 0;
+    if (keysPressed.a || keysPressed.A || keysPressed.ArrowLeft) dx -= 1;
+    if (keysPressed.d || keysPressed.D || keysPressed.ArrowRight) dx += 1;
+    if (keysPressed.w || keysPressed.W || keysPressed.ArrowUp) dz -= 1;
+    if (keysPressed.s || keysPressed.S || keysPressed.ArrowDown) dz += 1;
+
+    if (dx !== 0 && dz !== 0) { dx *= 0.7071; dz *= 0.7071; }
+    moveVector.x = dx; moveVector.z = dz;
+}
+
+function processWeaponAimTracking() {
+    if (enemiesArray.length === 0) {
+        if (moveVector.x !== 0 || moveVector.z !== 0) {
+            weaponTurret.rotation.z = Math.atan2(moveVector.x, moveVector.z) + Math.PI; 
+        }
+        return;
+    }
+    let targetDrone = null, minDistance = Infinity;
+    for (let i = 0; i < enemiesArray.length; i++) {
+        const d = playerGroup.position.distanceTo(enemiesArray[i].position);
+        if (d < minDistance) { minDistance = d; targetDrone = enemiesArray[i]; }
+    }
+    if (targetDrone) {
+        const rel = targetDrone.position.clone();
+        playerGroup.worldToLocal(rel);
+        weaponTurret.rotation.z = Math.atan2(rel.x, rel.z) + Math.PI;
+    }
 }
 
 function fireProjectile() {
     if (isGameOver || !gameStarted) return;
-    const geo = new THREE.SphereGeometry(0.2, 8, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(playerGroup.position);
-    mesh.position.y = 0.7;
+    const now = Date.now();
+    if (now - lastFireTime < fireCooldown) return;
+    lastFireTime = now;
 
-    const velocity = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion).normalize().multiplyScalar(0.45);
-    scene.add(mesh);
-    projectilesArray.push({ mesh: mesh, velocity: velocity, life: 100 });
+    playSoundFX('laser');
+    const geo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+    const laserMesh = new THREE.Mesh(geo, mat);
+    laserMesh.rotation.x = Math.PI / 2;
+    laserMesh.position.copy(playerGroup.position).y = 0.55;
+
+    const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), weaponTurret.rotation.z).normalize().multiplyScalar(0.72);
+    laserMesh.lookAt(playerGroup.position.clone().add(dir).add(new THREE.Vector3(0,0.55,0)));
+
+    scene.add(laserMesh);
+    projectilesArray.push({ mesh: laserMesh, velocity: dir, life: 80 });
 }
 
-function startSpawning() {
-    if (enemySpawnTimer) clearInterval(enemySpawnTimer);
-    enemySpawnTimer = setInterval(spawnEnemy, activeSettings.spawnInterval);
+function spawnEnemy() {
+    if (isGameOver || !gameStarted) return;
+    const geo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+    let col = 0xff0055;
+    if (currentLevel === 2) col = 0xff00ff;
+    if (currentLevel >= 3) col = currentLevel % 2 === 0 ? 0xffff00 : 0xffaa00;
+
+    const mat = new THREE.MeshStandardMaterial({ color: col, metalness: 0.2, roughness: 0.3 });
+    const enemyMesh = new THREE.Mesh(geo, mat);
+    enemyMesh.position.y = 0.42;
+
+    const angle = Math.random() * Math.PI * 2;
+    enemyMesh.position.x = playerGroup.position.x + Math.cos(angle) * 24;
+    enemyMesh.position.z = playerGroup.position.z + Math.sin(angle) * 24;
+
+    scene.add(enemyMesh);
+    enemiesArray.push(enemyMesh);
 }
 
-// ============================================================================
-// 6. INPUT LOGIC INTERFACES
-// ============================================================================
-let moveDirection = { x: 0, z: 0 };
-const playerBaseSpeed = 0.15;
-const keys = { w: false, a: false, s: false, d: false };
-
-window.addEventListener('keydown', (e) => {
-    if (!gameStarted) {
-        if (e.key === 'Enter' || e.key === ' ') startGameMission();
-        return;
-    }
-    if(['w','ArrowUp'].includes(e.key)) keys.w = true;
-    if(['s','ArrowDown'].includes(e.key)) keys.s = true;
-    if(['a','ArrowLeft'].includes(e.key)) keys.a = true;
-    if(['d','ArrowRight'].includes(e.key)) keys.d = true;
-    if(e.key === ' ') fireProjectile();
-    updateKeyboardDirection();
-});
-
-window.addEventListener('keyup', (e) => {
-    if(['w','ArrowUp'].includes(e.key)) keys.w = false;
-    if(['s','ArrowDown'].includes(e.key)) keys.s = false;
-    if(['a','ArrowLeft'].includes(e.key)) keys.a = false;
-    if(['d','ArrowRight'].includes(e.key)) keys.d = false;
-    updateKeyboardDirection();
-});
-
-function updateKeyboardDirection() {
-    moveDirection.x = (keys.a ? -1 : 0) + (keys.d ? 1 : 0);
-    moveDirection.z = (keys.w ? -1 : 0) + (keys.s ? 1 : 0);
+function spawnEnemyWave() {
+    const count = 5 + currentLevel;
+    for (let i = 0; i < count; i++) spawnEnemy();
 }
 
-// Touch Mobile Engine Configuration
-const joystickZone = document.getElementById('joystickZone');
-const joystickKnob = document.getElementById('joystickKnob');
-const fireButton = document.getElementById('actionButton');
-let joystickActive = false;
-
-joystickZone.addEventListener('touchstart', (e) => { if(!gameStarted) return; joystickActive = true; handleJoystickMove(e.touches[0]); });
-joystickZone.addEventListener('touchmove', (e) => { if (joystickActive) handleJoystickMove(e.touches[0]); });
-joystickZone.addEventListener('touchend', () => { joystickActive = false; joystickKnob.style.transform = `translate(0px, 0px)`; moveDirection = { x: 0, z: 0 }; });
-fireButton.addEventListener('touchstart', (e) => { e.preventDefault(); if(gameStarted) fireProjectile(); });
-fireButton.addEventListener('click', () => { if(gameStarted) fireProjectile(); });
-
-function handleJoystickMove(touch) {
-    const rect = joystickZone.getBoundingClientRect();
-    const cX = rect.left + rect.width / 2; const cY = rect.top + rect.height / 2;
-    let dX = touch.clientX - cX; let dY = touch.clientY - cY;
-    const maxR = rect.width / 2; const dist = Math.sqrt(dX * dX + dY * dY);
-    if (dist > maxR) { dX = (dX / dist) * maxR; dY = (dY / dist) * maxR; }
-    joystickKnob.style.transform = `translate(${dX}px, ${dY}px)`;
-    moveDirection.x = dX / maxR; moveDirection.z = dY / maxR;
-}
-
-// ============================================================================
-// 7. CORE RUNTIME PHYSICS LOOPS
-// ============================================================================
 function updateGamePhysics() {
-    // 1. Player Translation with Block Check Walls
-    if (moveDirection.x !== 0 || moveDirection.z !== 0) {
-        const nextX = playerGroup.position.x + moveDirection.x * playerBaseSpeed;
-        const nextZ = playerGroup.position.z + moveDirection.z * playerBaseSpeed;
+    processKeyboardVectors();
 
-        // Separate coordinate check variables to allow sliding along block boundaries smoothly
-        if (!checkBlockCollisions(nextX, playerGroup.position.z, 0.5)) {
-            playerGroup.position.x = nextX;
-        }
-        if (!checkBlockCollisions(playerGroup.position.x, nextZ, 0.5)) {
-            playerGroup.position.z = nextZ;
-        }
-        playerGroup.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
+    if (moveVector.x !== 0 || moveVector.z !== 0) {
+        playerGroup.position.x += moveVector.x * 0.16;
+        playerGroup.position.z += moveVector.z * 0.16;
+        playerGroup.rotation.y = Math.atan2(-moveVector.x, -moveVector.z);
+        playerCube.position.y = 0.5 + Math.sin(Date.now() * 0.015) * 0.08;
+    } else {
+        playerCube.position.y = 0.5;
     }
 
-    // 2. Enemies Pathfinding Loops
+    if (isFiringPressed) fireProjectile();
+
+    for (let i = projectilesArray.length - 1; i >= 0; i--) {
+        const p = projectilesArray[i]; p.mesh.position.add(p.velocity); p.life--;
+        if (p.life <= 0) { scene.remove(p.mesh); projectilesArray.splice(i, 1); }
+    }
+
+    const speed = 0.045 + (currentLevel * 0.005);
     for (let i = enemiesArray.length - 1; i >= 0; i--) {
         const enemy = enemiesArray[i];
-        const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position);
-        dir.y = 0; dir.normalize();
-        
-        const nextEnemyX = enemy.position.x + dir.x * activeSettings.enemySpeed;
-        const nextEnemyZ = enemy.position.z + dir.z * activeSettings.enemySpeed;
+        const run = new THREE.Vector3().subVectors(playerGroup.position, enemy.position);
+        run.y = 0; run.normalize();
+        enemy.position.addScaledVector(run, speed);
 
-        // Enemies are also blocked by solid blocks!
-        if (!checkBlockCollisions(nextEnemyX, enemy.position.z, 0.45)) enemy.position.x = nextEnemyX;
-        if (!checkBlockCollisions(enemy.position.x, nextEnemyZ, 0.45)) enemy.position.z = nextEnemyZ;
-        
-        enemy.lookAt(playerGroup.position.x, enemy.position.y, playerGroup.position.z);
-
-        if (enemy.position.distanceTo(playerGroup.position) < 1.0) {
-            playerHealth -= 1.5; updateUI();
-            if (playerHealth <= 0) handleLifeLoss();
-        }
-    }
-
-    // 3. Lasers vs Enemies vs Blocks
-    for (let p = projectilesArray.length - 1; p >= 0; p--) {
-        const proj = projectilesArray[p];
-        proj.mesh.position.add(proj.velocity);
-        proj.life--;
-
-        let hitRegistered = false;
-
-        // Laser hits solid block check
-        if (checkBlockCollisions(proj.mesh.position.x, proj.mesh.position.z, 0.1)) {
-            hitRegistered = true; // Destroy bullet if it hits a wall
+        if (enemy.position.distanceTo(playerGroup.position) < 0.95) {
+            scene.remove(enemy); enemiesArray.splice(i, 1);
+            playerLives--; playSoundFX('damage');
+            updateInterfaceLayout();
+            if (playerLives <= 0) runGameOverState();
+            continue;
         }
 
-        // Laser hits enemy check
-        for (let e = enemiesArray.length - 1; e >= 0; e--) {
-            const enemy = enemiesArray[e];
-            if (proj.mesh.position.distanceTo(enemy.position) < 0.8) {
-                scene.remove(enemy);
-                enemiesArray.splice(e, 1);
-                hitRegistered = true;
-                score++; updateUI(); checkLevelProgression();
+        for (let j = projectilesArray.length - 1; j >= 0; j--) {
+            const b = projectilesArray[j];
+            if (b.mesh.position.distanceTo(enemy.position) < 0.75) {
+                createExplosionFX(enemy.position, enemy.material.color.getHex());
+                playSoundFX('explosion');
+                scene.remove(enemy); enemiesArray.splice(i, 1);
+                scene.remove(b.mesh); projectilesArray.splice(j, 1);
+                score++; updateInterfaceLayout();
+                if (score >= targetKills) advanceGameLevel();
                 break;
             }
         }
-
-        if (hitRegistered || proj.life <= 0) {
-            scene.remove(proj.mesh);
-            projectilesArray.splice(p, 1);
-        }
     }
+    if (enemiesArray.length < 4 && !isGameOver) spawnEnemy();
 }
 
-// ============================================================================
-// 8. PROGRESSION MANAGEMENT ENGINE
-// ============================================================================
-function handleLifeLoss() {
-    playerLives--;
-    if (playerLives <= 0) {
-        triggerGameOver(false);
-    } else {
-        playerHealth = 100;
-        playerGroup.position.set(0, 0, 0);
-        enemiesArray.forEach(e => scene.remove(e));
-        enemiesArray = [];
-        updateUI();
-    }
+function advanceGameLevel() {
+    currentLevel++; score = 0; targetKills = 10 + (currentLevel * 3);
+    const colors = [0x00ff88, 0x00ffff, 0xff00ff, 0xffff00, 0xff5500];
+    buildLevelGrid(colors[currentLevel % colors.length]);
+    updateInterfaceLayout(); spawnEnemyWave();
 }
 
-function checkLevelProgression() {
-    if (score >= activeSettings.targetScore) {
-        if (currentLevel < maxLevels) {
-            currentLevel++;
-            activeSettings = getLevelSettings(currentLevel);
-            score = 0; playerHealth = 100; 
-            
-            scene.background = new THREE.Color(activeSettings.backgroundColor);
-            scene.fog.color = new THREE.Color(activeSettings.backgroundColor);
-            
-            scene.remove(gridHelper);
-            gridHelper = new THREE.GridHelper(500, 100, activeSettings.gridColor, 0x1e1e2f);
-            scene.add(gridHelper);
-            
-            generateObstacleBlocks(); // Generate fresh barriers for the new level
-            updateUI();
-            startSpawning();
-        } else {
-            triggerGameOver(true);
-        }
-    }
-}
+function runGameOverState() {
+    isGameOver = true; gameStarted = false; isFiringPressed = false;
+    saveHighScore();
 
-function updateUI() {
-    document.getElementById('levelDisplay').innerText = `LEVEL: ${currentLevel}/${maxLevels} ${currentLevel === 1 ? '(SURVIVE HARD MODE!)' : ''}`;
-    document.getElementById('scoreDisplay').innerText = `KILLS: ${score} / ${activeSettings.targetScore} | LIVES: ${"❤️".repeat(playerLives)}`;
-    document.getElementById('healthBar').style.width = `${Math.max(playerHealth, 0)}%`;
-}
-
-function triggerGameOver(isVictory) {
-    isGameOver = true;
-    clearInterval(enemySpawnTimer);
-    const screen = document.getElementById('overlayScreen');
-    const title = document.getElementById('screenTitle');
-    const subtitle = document.getElementById('screenSubtitle');
-    
-    document.getElementById('restartButton').innerText = "PLAY AGAIN";
-    if (isVictory) {
-        title.innerText = "MASTER VICTOR 🏆";
-        subtitle.innerText = "All 30 data mainframe matrices successfully stabilized!";
-    } else {
-        title.innerText = "DEFEATED 💀";
-        subtitle.innerText = `System compromised at level Stage ${currentLevel}.`;
-    }
-    document.getElementById('colorPalette').classList.add('hidden'); // hide colors during game over screen
-    screen.classList.remove('hidden');
-}
-
-// Interactive Skin Customizer Menu Initializer
-function setupStartMenu() {
-    const options = document.querySelectorAll('.colorOption');
-    options.forEach(opt => {
-        opt.addEventListener('click', (e) => {
-            // Uncheck previous configuration style filters
-            options.forEach(o => o.classList.remove('active'));
-            e.target.classList.add('active');
-            
-            // Apply the hexadecimal selection data instantly to the player mesh color engine
-            const hexColor = parseInt(e.target.getAttribute('data-color'));
-            selectedPetColor = hexColor;
-            bodyMat.color.setHex(hexColor);
-        });
-    });
-
-    document.getElementById('restartButton').addEventListener('click', startGameMission);
-}
-
-function startGameMission() {
-    gameStarted = true;
-    document.getElementById('overlayScreen').classList.add('hidden');
-    
-    const btn = document.getElementById('restartButton');
-    btn.removeEventListener('click', startGameMission);
-    btn.addEventListener('click', resetEntireGame);
-    
-    resetEntireGame();
-}
-
-function resetEntireGame() {
     enemiesArray.forEach(e => scene.remove(e));
     projectilesArray.forEach(p => scene.remove(p.mesh));
     enemiesArray = []; projectilesArray = [];
+
+    const titleNode = document.getElementById('menu-title');
+    titleNode.innerText = "SYSTEM CRASH";
+    titleNode.classList.add('game-over-active');
     
-    currentLevel = 1; score = 0; playerHealth = 100; playerLives = 3; isGameOver = false;
-    activeSettings = getLevelSettings(currentLevel);
+    document.getElementById('menu-subtitle').innerText = "CONNECTION TERMINATED // MAIN INITIALIZATION ABORTED";
+    document.getElementById('skin-section').style.display = 'none'; 
     
-    playerGroup.position.set(0, 0, 0);
-    scene.background = new THREE.Color(activeSettings.backgroundColor);
-    scene.fog.color = new THREE.Color(activeSettings.backgroundColor);
+    const savedHi = localStorage.getItem('cyber_arcade_hi_lvl') || 1;
+    document.getElementById('menu-high-score').innerHTML = `CRITICAL FAILURE<br>FINAL LEVEL REACHED: ${currentLevel}<br><span style="color:#ffff00">ALL-TIME BEST LEVEL: ${savedHi}</span>`;
     
-    scene.remove(gridHelper);
-    gridHelper = new THREE.GridHelper(500, 100, activeSettings.gridColor, 0x111122);
-    scene.add(gridHelper);
-    
-    generateObstacleBlocks(); // Spawns blocks instantly
-    updateUI();
-    document.getElementById('colorPalette').classList.remove('hidden');
-    document.getElementById('overlayScreen').classList.add('hidden');
-    startSpawning();
+    document.getElementById('play-btn').innerText = "REBOOT MAINFRAME";
+    document.getElementById('start-menu').style.visibility = 'visible';
+    document.getElementById('start-menu').style.opacity = '1';
 }
 
-// ============================================================================
-// 9. ANIMATION LOOP FRAME SYNC RUNTIME
-// ============================================================================
-function animate() {
-    requestAnimationFrame(animate);
-    if (gameStarted && !isGameOver) {
-        updateGamePhysics();
+function updateInterfaceLayout() {
+    document.getElementById('level-num').innerText = currentLevel;
+    document.getElementById('score-num').innerText = score;
+    document.getElementById('target-num').innerText = targetKills;
+    let livesStr = "";
+    for (let i = 0; i < playerLives; i++) livesStr += "❤️";
+    document.getElementById('lives-display').innerText = livesStr || "💥 CRITICAL";
+    document.getElementById('progress-bar').style.width = `${Math.min((score / targetKills) * 100, 100)}%`;
+}
+
+function animateLoop() {
+    requestAnimationFrame(animateLoop);
+    if (gameStarted && !isGameOver) { updateGamePhysics(); processWeaponAimTracking(); }
+    updateParticles();
+    if (playerGroup) {
+        camera.position.copy(playerGroup.position).add(cameraOffset);
+        camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, -0.8, 0)));
     }
-    camera.position.copy(playerGroup.position).add(cameraOffset);
-    camera.lookAt(playerGroup.position.x, playerGroup.position.y + 0.5, playerGroup.position.z);
     renderer.render(scene, camera);
 }
 
-setupStartMenu();
-animate();
-
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}

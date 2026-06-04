@@ -2,43 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Cyber Arcade - Blocks & Skins</title>
-    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cyber Arcade Pro // Landscape v4.5</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
+    <div class="scanlines"></div>
 
-    <div id="hud">
-        <div id="levelDisplay">LEVEL: 1/30</div>
-        <div id="scoreDisplay">SCORE: 0 / 5</div>
-        <div id="healthBarContainer">
-            <div id="healthBar"></div>
+    <div id="rotate-device-screen">
+        <div class="rotate-content">
+            <div class="phone-icon">🔄</div>
+            <p>PLEASE ROTATE YOUR PHONE</p>
+            <span>Play in Landscape Mode for the ultimate console experience!</span>
         </div>
     </div>
 
-    <div id="controlsContainer">
-        <div id="joystickZone">
-            <div id="joystickKnob"></div>
+    <div id="start-menu">
+        <div class="menu-content">
+            <h1 id="menu-title" class="neon-title">CYBER ARCADE</h1>
+            <p id="menu-subtitle" class="neon-subtitle">SYSTEM STATUS: READY TO LAUNCH</p>
+            
+            <div id="skin-section">
+                <p class="skin-prompt">CHOOSE YOUR AVATAR CORE:</p>
+                <div id="colorPalette">
+                    <div class="colorOption active" data-color="0x00ff88" style="background: #00ff88;"></div>
+                    <div class="colorOption" data-color="0xff0055" style="background: #ff0055;"></div>
+                    <div class="colorOption" data-color="0x00ffff" style="background: #00ffff;"></div>
+                    <div class="colorOption" data-color="0xffaa00" style="background: #ffaa00;"></div>
+                    <div class="colorOption" data-color="0x9900ff" style="background: #9900ff;"></div>
+                </div>
+            </div>
+
+            <div class="menu-stats">
+                <div class="high-score-box">ALL-TIME BEST LEVEL: <span id="high-score-val">1</span></div>
+                <span class="control-help">PC: WASD / ARROWS + SPACEBAR | MOBILE: LANDSCAPE VIRTUAL PADS</span>
+            </div>
+            
+            <button id="play-btn" onclick="startGameApp()">INITIALIZE MISSION</button>
         </div>
-        <button id="actionButton">FIRE</button>
     </div>
 
-    <div id="overlayScreen">
-        <h1 id="screenTitle">CYBER ARCADE</h1>
-        <p id="screenSubtitle">Choose your Pet Skin configuration:</p>
+    <div id="ui-container">
+        <div class="hud-item"><span class="label">CORE LEVEL:</span> <span id="level-num" class="val">1</span></div>
+        <div class="hud-item"><span class="label">ELIMINATED:</span> <span id="score-num" class="val">0</span>/<span id="target-num" class="val">10</span></div>
+        <div class="hud-item" id="lives-display">❤️❤️❤️</div>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="mobile-controls-layer">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
         
-        <div id="colorPalette">
-            <div class="colorOption active" data-color="0x00ff88" style="background: #00ff88;"></div>
-            <div class="colorOption" data-color="0xff0055" style="background: #ff0055;"></div>
-            <div class="colorOption" data-color="0x00ffff" style="background: #00ffff;"></div>
-            <div class="colorOption" data-color="0xffaa00" style="background: #ffaa00;"></div>
-            <div class="colorOption" data-color="0x9900ff" style="background: #9900ff;"></div>
+        <div id="fire-zone">
+            <button id="fire-btn">FIRE</button>
         </div>
-
-        <button id="restartButton">START MISSION</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
