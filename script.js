@@ -1,4 +1,4 @@
-// --- Core Engine Architecture Properties ---
+// --- Core Engine Framework Variables ---
 let scene, camera, renderer;
 let playerGroup, playerCube, weaponTurret, playerMat;
 let gridHelper;
@@ -14,7 +14,7 @@ let activePetColor = 0x00ff88;
 let enemiesArray = [];
 let projectilesArray = [];
 let particlesArray = [];
-let decorationCubes = []; // Floating Main Menu Props
+let decorationCubes = [];
 
 let lastFireTime = 0;
 const fireCooldown = 140; 
@@ -32,9 +32,13 @@ let joystickActive = false;
 let joystickStartPos = { x: 0, y: 0 };
 const joystickMaxRange = 40; 
 
+// System Web Audio Engine States
 let audioCtx = null;
+let bgmOscillator = null;
+let bgmGainNode = null;
+let musicEnabled = true;
+let sfxEnabled = true;
 
-// Stage Layout Matrix Profile Definitions
 const STAGE_CONFIGS = [
     { gridColor: 0x00ff88, fogColor: 0x020206, enemyShape: 'box', speedBonus: 0.0 },
     { gridColor: 0x00ffff, fogColor: 0x01050a, enemyShape: 'pyramid', speedBonus: 0.012 },
@@ -43,10 +47,12 @@ const STAGE_CONFIGS = [
     { gridColor: 0xff3300, fogColor: 0x0c0101, enemyShape: 'pyramid', speedBonus: 0.045 }
 ];
 
+// Kick off initialization sequence
 initEngine();
 setupSkinSelectors();
 loadHighScore();
 buildMenuDecorations();
+setupSystemInteractions(); // Handle buttons natively inside JS to fix PC runtime error
 animateLoop();
 
 function initEngine() {
@@ -103,8 +109,55 @@ function buildMenuDecorations() {
     }
 }
 
+// --- CORE BIND PIPELINES: FIXES THE PC INITIALIZATION ERROR ---
+function setupSystemInteractions() {
+    // Launch Mission Button Click Hook
+    document.getElementById('play-btn').addEventListener('click', () => {
+        initializeSystemBoot();
+    });
+
+    // Modal Config Open/Close Settings
+    const gearBtn = document.getElementById('settings-gear-btn');
+    const settingsModal = document.getElementById('settings-modal-overlay');
+    const closeSettings = document.getElementById('close-settings-btn');
+
+    gearBtn.addEventListener('click', () => {
+        settingsModal.style.display = 'flex';
+    });
+    closeSettings.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+    });
+
+    // Music/Audio Hardware Controls Toggles
+    const bgmToggle = document.getElementById('toggle-bgm-btn');
+    const sfxToggle = document.getElementById('toggle-sfx-btn');
+
+    bgmToggle.addEventListener('click', () => {
+        musicEnabled = !musicEnabled;
+        if(musicEnabled) {
+            bgmToggle.classList.add('active');
+            bgmToggle.innerText = "ON";
+            if(bgmGainNode) bgmGainNode.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        } else {
+            bgmToggle.classList.remove('active');
+            bgmToggle.innerText = "OFF";
+            if(bgmGainNode) bgmGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+    });
+
+    sfxToggle.addEventListener('click', () => {
+        sfxEnabled = !sfxEnabled;
+        if(sfxEnabled) {
+            sfxToggle.classList.add('active');
+            sfxToggle.innerText = "ON";
+        } else {
+            sfxToggle.classList.remove('active');
+            sfxToggle.innerText = "OFF";
+        }
+    });
+}
+
 function initializeSystemBoot() {
-    // Attempt Auto-Landscape Device Rotation Shift
     if (navigator.userAgent.match(/Android|iPhone|iPad|iPod/i)) {
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().then(() => {
@@ -115,6 +168,7 @@ function initializeSystemBoot() {
         }
     }
 
+    // Audio Engine Handshake Context Boot Up
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         startSynthLoop();
@@ -137,7 +191,7 @@ function initializeSystemBoot() {
                 startGameApp();
             }, 150);
         }
-    }, 40);
+    }, 30);
 }
 
 function startGameApp() {
@@ -284,7 +338,6 @@ function spawnEnemy() {
     if (isGameOver || !gameStarted) return;
     const cfg = STAGE_CONFIGS[(currentLevel - 1) % STAGE_CONFIGS.length];
     
-    // ESCALATING LAYOUT GEOMETRIES PER STAGE
     let geo;
     if (cfg.enemyShape === 'pyramid') geo = new THREE.ConeGeometry(0.5, 1.0, 4);
     else if (cfg.enemyShape === 'sphere') geo = new THREE.SphereGeometry(0.48, 8, 8);
@@ -326,7 +379,6 @@ function updateGamePhysics() {
         if (p.life <= 0) { scene.remove(p.mesh); projectilesArray.splice(i, 1); }
     }
 
-    // ACCELERATED TRACKING SPEEDS AT HIGHER STAGES
     const currentCfg = STAGE_CONFIGS[(currentLevel - 1) % STAGE_CONFIGS.length];
     const baseSpeed = 0.045 + currentCfg.speedBonus;
 
@@ -335,7 +387,7 @@ function updateGamePhysics() {
         const heading = new THREE.Vector3().subVectors(playerGroup.position, enemy.position);
         heading.y = 0; heading.normalize();
         enemy.position.addScaledVector(heading, baseSpeed);
-        enemy.rotation.y += 0.02; // Custom level rotational animations
+        enemy.rotation.y += 0.02;
 
         if (enemy.position.distanceTo(playerGroup.position) < 0.95) {
             scene.remove(enemy); enemiesArray.splice(i, 1);
@@ -414,15 +466,9 @@ function setupSkinSelectors() {
     });
 }
 
-function initAudio() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        startSynthLoop();
-    }
-}
-
+// --- SYNTHESIZED PROCEDURAL BACKGROUND AUDIO GENERATION CIRCUITS ---
 function playSoundFX(type) {
-    if (!audioCtx) return;
+    if (!audioCtx || !sfxEnabled) return;
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     osc.connect(gainNode); gainNode.connect(audioCtx.destination);
@@ -431,27 +477,42 @@ function playSoundFX(type) {
     if (type === 'laser') {
         osc.type = 'sawtooth'; osc.frequency.setValueAtTime(750, now);
         osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
+        gainNode.gain.setValueAtTime(0.08, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
         osc.start(now); osc.stop(now + 0.1);
     } else if (type === 'explosion') {
         osc.type = 'triangle'; osc.frequency.setValueAtTime(140, now);
         osc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
-        gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+        gainNode.gain.setValueAtTime(0.15, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
         osc.start(now); osc.stop(now + 0.2);
     } else if (type === 'damage') {
         osc.type = 'square'; osc.frequency.setValueAtTime(90, now);
-        gainNode.gain.setValueAtTime(0.25, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+        gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
         osc.start(now); osc.stop(now + 0.15);
     }
 }
 
 function startSynthLoop() {
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    osc.type = 'sine'; osc.frequency.setValueAtTime(50, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.03, audioCtx.currentTime);
-    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-    osc.start();
+    // Continuous Background Baseline Generator
+    bgmOscillator = audioCtx.createOscillator();
+    bgmGainNode = audioCtx.createGain();
+    
+    bgmOscillator.type = 'triangle'; 
+    bgmOscillator.frequency.setValueAtTime(58.27, audioCtx.currentTime); // Deep retro C# bass chord note
+    
+    // Low initial ambient volume layout
+    bgmGainNode.gain.setValueAtTime(musicEnabled ? 0.02 : 0, audioCtx.currentTime);
+    
+    bgmOscillator.connect(bgmGainNode); 
+    bgmGainNode.connect(audioCtx.destination);
+    bgmOscillator.start();
+
+    // Setup an infinite sequenced retro melody rhythm track note changer loop
+    setInterval(() => {
+        if (!musicEnabled || !audioCtx) return;
+        const notes = [58.27, 65.41, 73.42, 87.31]; // Looping chiptune note progression matrix
+        const nextNote = notes[Math.floor(Math.random() * notes.length)];
+        bgmOscillator.frequency.exponentialRampToValueAtTime(nextNote, audioCtx.currentTime + 0.1);
+    }, 800);
 }
 
 function createExplosionFX(position, colorHex) {
@@ -487,7 +548,6 @@ function animateLoop() {
     if (gameStarted && !isGameOver) { updateGamePhysics(); processWeaponAimTracking(); }
     updateParticles();
     
-    // Spin home page scene background elements when inactive
     if (!gameStarted) {
         decorationCubes.forEach(c => { c.rotation.x += 0.005; c.rotation.y += 0.01; });
     }

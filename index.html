@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cyber Arcade Pro // Global Edition v5.0</title>
+    <title>Cyber Shift Pro // Edition v5.5</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,13 +14,13 @@
         <div class="rotate-content">
             <div class="phone-icon">🔄</div>
             <p>ROTATE DEVICE</p>
-            <span>Please flip your device horizontally for console layout mode.</span>
+            <span>Flip your device horizontally for console layout mode.</span>
         </div>
     </div>
 
     <div id="start-menu">
         <div class="menu-content">
-            <div class="brand-badge">ARCADE ENGINE v5.0</div>
+            <div class="brand-badge">ARCADE ENGINE v5.5</div>
             <h1 id="menu-title" class="neon-title">CYBER SHIFT</h1>
             <p id="menu-subtitle" class="neon-subtitle">SECTOR SECURITY MAINFRAME: ACTIVE</p>
             
@@ -37,16 +37,33 @@
 
             <div class="menu-stats">
                 <div id="menu-high-score" class="high-score-box">ALL-TIME SECTOR RECORD: LEVEL <span id="high-score-val">1</span></div>
-                <span class="control-help">DESKTOP: WASD / ARROWS + SPACEBAR<br>MOBILE: AUTO-LANDSCAPE DUAL TOUCH PADS</span>
+                <span class="control-help">DESKTOP: WASD / ARROWS + SPACEBAR<br>MOBILE: LANDSCAPE DUAL TOUCH PADS</span>
             </div>
             
             <div class="action-container">
-                <button id="play-btn" onclick="initializeSystemBoot()">LAUNCH MISSION</button>
+                <button id="play-btn">LAUNCH MISSION</button>
                 <div id="boot-loader-container">
                     <div id="boot-loader-bar"></div>
                     <p id="boot-loader-text">CALIBRATING MATRIX...</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="settings-gear-btn" class="hud-interactive-btn">⚙️</div>
+
+    <div id="settings-modal-overlay">
+        <div class="modal-box">
+            <h3>SYSTEM SETTINGS</h3>
+            <div class="setting-row">
+                <span>BACKGROUND MUSIC (BGM)</span>
+                <button id="toggle-bgm-btn" class="toggle-btn active">ON</button>
+            </div>
+            <div class="setting-row">
+                <span>SOUND EFFECTS (SFX)</span>
+                <button id="toggle-sfx-btn" class="toggle-btn active">ON</button>
+            </div>
+            <button id="close-settings-btn">RESUME GAME</button>
         </div>
     </div>
 

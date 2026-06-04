@@ -12,6 +12,7 @@ body, html {
     overflow: hidden;
     background-color: #030308;
     font-family: 'Courier New', Courier, monospace;
+    position: fixed; /* Fixes mobile layout bouncing/shifting scroll bugs */
 }
 
 canvas {
@@ -54,7 +55,7 @@ canvas {
     #rotate-device-screen { display: flex; }
 }
 
-/* PREMIUM INTERACTIVE HOME MENU CONTAINER */
+/* MAIN MENU CONTAINER */
 #start-menu {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -75,15 +76,14 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 580px;
-    width: 85%;
+    max-width: 540px;
+    width: 90%;
     border: 2px solid #00ff88;
     box-shadow: 0 0 40px rgba(0, 255, 136, 0.2);
-    padding: 30px;
+    padding: 20px;
     background: rgba(7, 7, 20, 0.9);
     border-radius: 20px;
     position: relative;
-    overflow: hidden;
 }
 
 .brand-badge {
@@ -93,17 +93,17 @@ canvas {
     padding: 4px 12px;
     border-radius: 20px;
     letter-spacing: 2px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     font-weight: bold;
 }
 
 .neon-title {
-    font-size: 2.8rem;
+    font-size: 2.4rem;
     color: #ffffff;
     text-shadow: 0 0 10px #00ff88, 0 0 25px #00ff88;
-    letter-spacing: 8px;
+    letter-spacing: 6px;
     font-weight: 900;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
 .neon-title.game-over-active {
@@ -112,40 +112,39 @@ canvas {
     animation: glitchShake 0.25s infinite;
 }
 
-.neon-subtitle { color: #00ffff; font-size: 0.85rem; letter-spacing: 3px; margin-bottom: 20px; }
-.skin-prompt { color: #818ba0; margin-bottom: 10px; font-size: 0.8rem; letter-spacing: 1px; }
+.neon-subtitle { color: #00ffff; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 12px; }
+.skin-prompt { color: #818ba0; margin-bottom: 6px; font-size: 0.75rem; letter-spacing: 1px; }
 
-#colorPalette { display: flex; gap: 15px; margin-bottom: 25px; }
-.colorOption { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
+#colorPalette { display: flex; gap: 12px; margin-bottom: 16px; }
+.colorOption { width: 34px; height: 34px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
 .colorOption:hover { transform: scale(1.1); }
 .colorOption.active { border-color: #ffffff; box-shadow: 0 0 15px rgba(255,255,255,0.9); }
 
-.menu-stats { margin-bottom: 25px; width: 100%; }
+.menu-stats { margin-bottom: 16px; width: 100%; }
 .high-score-box {
     background: rgba(255, 255, 255, 0.03);
-    padding: 14px;
+    padding: 10px;
     border-radius: 8px;
     color: #ffff00;
     font-weight: bold;
-    font-size: 0.95rem;
-    margin-bottom: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
     border: 1px dashed rgba(255,255,0,0.4);
-    line-height: 1.6;
     letter-spacing: 1px;
 }
-.control-help { color: #6d7b93; font-size: 0.75rem; line-height: 1.5; display: block; }
+.control-help { color: #6d7b93; font-size: 0.7rem; line-height: 1.4; display: block; }
 
-/* ACTION SUB-MENU MODULE & PRELOADER SYSTEMS */
-.action-container { width: 100%; position: relative; height: 50px; display: flex; justify-content: center; align-items: center; }
+/* ACTION SUB-MENU LOADER SYSTEMS */
+.action-container { width: 100%; position: relative; height: 45px; display: flex; justify-content: center; align-items: center; }
 
 #play-btn {
     background: transparent;
     border: 2px solid #00ff88;
     color: #00ff88;
-    padding: 12px 50px;
-    font-size: 1.05rem;
+    padding: 10px 45px;
+    font-size: 1rem;
     font-weight: bold;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     cursor: pointer;
     border-radius: 30px;
     transition: all 0.2s ease;
@@ -154,54 +153,121 @@ canvas {
 }
 #play-btn:hover { background: #00ff88; color: #030308; box-shadow: 0 0 30px #00ff88; }
 
-#boot-loader-container {
-    width: 80%;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    z-index: 1;
-}
-#boot-loader-bar {
-    width: 0%; height: 4px;
-    background: #00ffff;
-    box-shadow: 0 0 10px #00ffff;
-    border-radius: 2px;
-    transition: width 0.1s linear;
-}
-#boot-loader-text { color: #00ffff; font-size: 0.75rem; margin-top: 8px; letter-spacing: 2px; }
+#boot-loader-container { width: 80%; display: none; flex-direction: column; align-items: center; z-index: 1; }
+#boot-loader-bar { width: 0%; height: 4px; background: #00ffff; box-shadow: 0 0 10px #00ffff; border-radius: 2px; }
+#boot-loader-text { color: #00ffff; font-size: 0.75rem; margin-top: 6px; letter-spacing: 2px; }
 
-/* RECONSTRUCTED HUD LAYOUT BUILD DESIGN */
+/* HUD INTERACTIVE SETTINGS TRIGGER GEAR */
+.hud-interactive-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    width: 42px;
+    height: 42px;
+    background: rgba(5, 5, 15, 0.85);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 50%;
+    color: white;
+    font-size: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 90;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+}
+.hud-interactive-btn:hover { transform: rotate(45deg) scale(1.05); }
+
+/* LIVE IN-GAME SETTINGS WINDOW MODAL OVERLAY */
+#settings-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(3, 3, 8, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+.modal-box {
+    background: #090915;
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.25);
+    border-radius: 16px;
+    padding: 25px;
+    width: 320px;
+    text-align: center;
+    color: white;
+}
+.modal-box h3 { font-size: 1.15rem; letter-spacing: 3px; color: #00ffff; margin-bottom: 20px; }
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+.toggle-btn {
+    padding: 6px 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    border: 1px solid #ff0055;
+    background: rgba(255, 0, 85, 0.1);
+    color: #ff0055;
+    cursor: pointer;
+}
+.toggle-btn.active {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+}
+#close-settings-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    padding: 8px 25px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 20px;
+}
+#close-settings-btn:hover { background: white; color: #030308; }
+
+/* HUD LAYOUT (RESPONSIVE SAFE-GUARD ADJUSTMENTS) */
 #ui-container {
     position: absolute;
-    top: 15px; left: 50%;
-    transform: translateX(-50%);
-    width: 92%;
+    top: 15px; left: 5%;
+    width: 82%; /* Shrunk to give room to settings gear safely */
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: rgba(5, 5, 15, 0.85);
     border: 1px solid rgba(0, 255, 255, 0.2);
     border-radius: 30px;
-    padding: 10px 28px;
+    padding: 8px 24px;
     color: #fff;
     z-index: 10;
     pointer-events: none;
     box-shadow: 0 8px 25px rgba(0,0,0,0.5);
 }
 
-.hud-item { font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; }
+.hud-item { font-size: 0.85rem; font-weight: bold; letter-spacing: 1px; }
 .hud-item .label { color: #00ffff; }
 .hud-item .val { color: #fff; }
-#lives-display { font-size: 1rem; letter-spacing: 2px; }
+#lives-display { font-size: 0.9rem; letter-spacing: 1px; }
 
 #progress-container { position: absolute; bottom: 0; left: 5%; width: 90%; height: 4px; background: transparent; overflow: hidden; }
 #progress-bar { width: 0%; height: 100%; background: #ff0055; box-shadow: 0 0 10px #ff0055; }
 
-/* HARDWARE CONTROLS GRAPHIC INPUT CONTROLLERS */
+/* CONTROLS (MOVED FOR COMFORTABLE POSITIONING) */
 #mobile-controls-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 95; pointer-events: none; }
-#joystick-zone, #fire-zone { position: absolute; bottom: 30px; width: 120px; height: 120px; pointer-events: auto; }
+#joystick-zone, #fire-zone { position: absolute; bottom: 20px; width: 110px; height: 110px; pointer-events: auto; }
 
-#joystick-zone { left: 50px; touch-action: none; }
+#joystick-zone { left: 40px; touch-action: none; }
 #joystick-base {
     width: 100%; height: 100%;
     background: rgba(255, 255, 255, 0.03);
@@ -212,15 +278,15 @@ canvas {
     justify-content: center;
     align-items: center;
 }
-#joystick-stick { width: 45px; height: 45px; background: #00ff88; box-shadow: 0 0 15px #00ff88; border-radius: 50%; position: absolute; }
+#joystick-stick { width: 40px; height: 40px; background: #00ff88; box-shadow: 0 0 15px #00ff88; border-radius: 50%; position: absolute; }
 
-#fire-zone { right: 50px; display: flex; justify-content: center; align-items: center; }
+#fire-zone { right: 40px; display: flex; justify-content: center; align-items: center; }
 #fire-btn {
-    width: 95px; height: 95px;
+    width: 90px; height: 90px;
     background: rgba(255, 0, 85, 0.1);
     border: 3px solid #ff0055;
     border-radius: 50%;
-    color: white; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px;
+    color: white; font-weight: bold; font-size: 1rem; letter-spacing: 1px;
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.3);
     outline: none; cursor: pointer; touch-action: none;
 }
