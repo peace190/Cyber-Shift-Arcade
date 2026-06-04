@@ -20,7 +20,6 @@ let lastFireTime = 0;
 const fireCooldown = 150; 
 let isFiringPressed = false;
 
-// Perfectly balanced isometric overhead view coordinates
 const cameraOffset = new THREE.Vector3(0, 10.5, 7.5);
 let moveVector = { x: 0, z: 0 };
 const keysPressed = {
@@ -33,7 +32,7 @@ let joystickActive = false;
 let joystickStartPos = { x: 0, y: 0 };
 const joystickMaxRange = 35; 
 
-// WEB AUDIO SYSTEM ARCHITECTURE
+// AUDIO SYSTEMS
 let audioCtx = null;
 let musicGainNode = null;
 let audioSequenceTimer = null;
@@ -41,14 +40,14 @@ let musicEnabled = true;
 let sfxEnabled = true;
 
 const STAGE_CONFIGS = [
-    { gridColor: 0x00ff88, fogColor: 0x020206, speedBonus: 0.0 },
-    { gridColor: 0x00ffff, fogColor: 0x01050a, speedBonus: 0.012 },
-    { gridColor: 0xff00ff, fogColor: 0x06010a, speedBonus: 0.022 }
+    { gridColor: 0x00ff88, fogColor: 0x020206 },
+    { gridColor: 0x00ffff, fogColor: 0x01050a },
+    { gridColor: 0xff00ff, fogColor: 0x06010a }
 ];
 
 initEngine();
 setupSkinSelectors();
-loadHighScore();
+loadHighScore(); // Load real score immediately on boot
 buildMenuDecorations();
 setupSystemInteractions();
 setupInputs();
@@ -105,10 +104,8 @@ function buildLevelGrid(hexColor) {
     scene.add(gridHelper);
 }
 
-// LEGENDARY RETRO SYNTH TRACK SEQUENCER PACING
 function runLegendaryAudioEngine() {
     let step = 0;
-    // Heavy electronic tracking loops (A Minor Driving Scale Pattern Progression)
     const bassline = [110, 110, 98, 98, 87, 87, 130, 110]; 
     const melody = [220, 261, 293, 329, 392, 329, 440, 392];
 
@@ -116,7 +113,6 @@ function runLegendaryAudioEngine() {
         if (!musicEnabled || !audioCtx) return;
         const now = audioCtx.currentTime;
 
-        // Heavy Base Beats Layer
         const bassOsc = audioCtx.createOscillator();
         const bassGain = audioCtx.createGain();
         bassOsc.type = 'triangle';
@@ -126,7 +122,6 @@ function runLegendaryAudioEngine() {
         bassOsc.connect(bassGain); bassGain.connect(musicGainNode);
         bassOsc.start(now); bassOsc.stop(now + 0.2);
 
-        // Arpeggiated Melody Layer
         if (step % 2 === 0) {
             const leadOsc = audioCtx.createOscillator();
             const leadGain = audioCtx.createGain();
@@ -219,7 +214,6 @@ function setupInputs() {
         }, 25);
     });
 
-    // KEYBOARD LISTENER SYSTEMS (PC SUPPORT)
     window.addEventListener('keydown', (e) => {
         if (e.key in keysPressed) keysPressed[e.key] = true;
         if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = true;
@@ -229,7 +223,6 @@ function setupInputs() {
         if (e.key === ' ' || e.key === 'Spacebar') isFiringPressed = false;
     });
 
-    // MOBILE TOUCH INTERFACE
     const joyZone = document.getElementById('joystick-zone');
     const joyStick = document.getElementById('joystick-stick');
     const fireButton = document.getElementById('fire-btn');
@@ -392,7 +385,12 @@ function updateGamePhysics() {
                 score++; updateInterfaceLayout();
                 if (score >= targetKills) {
                     currentLevel++; score = 0; targetKills += 4;
-                    if(STAGE_CONFIGS[currentLevel-1]) buildLevelGrid(STAGE_CONFIGS[currentLevel-1].gridColor);
+                    
+                    // Save level milestone progress permanently
+                    saveHighScore(currentLevel);
+                    
+                    let configIndex = (currentLevel - 1) % STAGE_CONFIGS.length;
+                    buildLevelGrid(STAGE_CONFIGS[configIndex].gridColor);
                     updateInterfaceLayout();
                 }
                 break;
@@ -407,9 +405,10 @@ function runGameOverState() {
     const titleNode = document.getElementById('menu-title');
     titleNode.innerText = "GAME OVER";
     titleNode.classList.add('game-over-active');
-    document.getElementById('play-btn').innerText = "RESTART";
+    document.getElementById('play-btn').innerText = "RESTART CORE";
     document.getElementById('start-menu').style.visibility = 'visible';
     document.getElementById('start-menu').style.opacity = '1';
+    loadHighScore(); // Refresh score box on menu open
 }
 
 function updateInterfaceLayout() {
@@ -434,8 +433,17 @@ function setupSkinSelectors() {
     });
 }
 
+// --- LOCAL STORAGE HIGH SCORE ENGINE ---
+function saveHighScore(levelReached) {
+    let currentRecord = localStorage.getItem('cyber_shift_high_level') || 1;
+    if (levelReached > parseInt(currentRecord)) {
+        localStorage.setItem('cyber_shift_high_level', levelReached);
+    }
+}
+
 function loadHighScore() {
-    document.getElementById('high-score-val').innerText = "1";
+    let savedRecord = localStorage.getItem('cyber_shift_high_level') || 1;
+    document.getElementById('high-score-val').innerText = savedRecord;
 }
 
 function animateLoop() {
