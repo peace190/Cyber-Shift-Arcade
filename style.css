@@ -214,6 +214,13 @@ canvas {
         justify-content: space-between !important;
     }
 
+    .menu-content {
+        max-width: 380px !important;
+        height: 84vh !important;
+        padding: 6px 12px 14px 12px !important; /* Added 14px to the bottom to lift everything up */
+        justify-content: space-between !important;
+    }
+
     /* Miniature config gear button layout positioning */
     #settings-gear-btn {
         top: 5px !important;
