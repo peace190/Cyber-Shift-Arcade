@@ -55,7 +55,7 @@ canvas {
     #rotate-device-screen { display: flex; }
 }
 
-/* CENTERING SOLUTION */
+/* MAIN COVER OVERLAY GRID DISPLAY */
 #start-menu {
     position: fixed;
     top: 0; left: 0;
@@ -72,7 +72,7 @@ canvas {
     padding: 12px;
 }
 
-/* PC Default UI Window Settings */
+/* DEFAULT PC DESKTOP LAYOUT WINDOW SETUP */
 .menu-content {
     text-align: center;
     display: flex;
@@ -202,86 +202,86 @@ canvas {
 #fire-btn:active { background: #ff0055; }
 
 
-/* --- THE MOBILE LANDSCAPE FIX: CORRECT SELECTORS LINKED --- */
+/* --- 🦐 THE ULTRA-COMPACT MOBILE LANDSCAPE MEDIA QUERY FIX 🦐 --- */
 @media screen and (max-device-width: 932px) and (orientation: landscape), 
        screen and (max-height: 500px) and (orientation: landscape) {
 
-    /* Aggressively shrinks the main layout wrapper card */
+    /* Shrinks the entire main card box down dramatically so it's super portable */
     .menu-content {
-        max-width: 440px !important;
-        height: 82vh !important;       /* Locks height safely inside the viewport */
-        padding: 8px 16px !important;   /* Tight margins to clear space */
+        max-width: 380px !important;    /* Brought the width way down to look tight */
+        height: 84vh !important;        /* Strict height ceiling to force it to stay on screen */
+        padding: 6px 12px !important;   /* Extremely thin padding to maximize viewport space */
         justify-content: space-between !important;
     }
 
-    /* Pulls down gear configuration layout */
+    /* Miniature config gear button layout positioning */
     #settings-gear-btn {
-        top: 6px !important;
-        right: 10px !important;
-        padding: 2px 8px !important;
-        font-size: 0.6rem !important;
-    }
-
-    /* Version tracking tag */
-    .brand-badge {
+        top: 5px !important;
+        right: 8px !important;
+        padding: 2px 6px !important;
         font-size: 0.55rem !important;
-        margin-bottom: 2px !important;
-        padding: 1px 8px !important;
     }
 
-    /* Shrinks the "CYBER SHIFT" main header text size */
+    /* System build badge tag label */
+    .brand-badge {
+        font-size: 0.5rem !important;
+        margin-bottom: 1px !important;
+        padding: 1px 6px !important;
+    }
+
+    /* Ultra portable game main header text scaling */
     .neon-title {
-        font-size: 1.4rem !important;
-        letter-spacing: 3px !important;
+        font-size: 1.25rem !important;
+        letter-spacing: 2px !important;
         margin-bottom: 0px !important;
     }
 
-    /* Shrinks the secondary sub-heading line */
+    /* Secondary info subtitle text description */
     .neon-subtitle {
-        font-size: 0.6rem !important;
-        margin-bottom: 6px !important;
-    }
-
-    /* Core prompt info message */
-    .skin-prompt {
         font-size: 0.55rem !important;
         margin-bottom: 4px !important;
     }
 
-    /* Shrinks individual avatar profile color selections */
-    #colorPalette {
-        gap: 8px !important;
-        margin-bottom: 6px !important;
-    }
-    .colorOption {
-        width: 24px !important;
-        height: 24px !important;
-        border-radius: 6px !important;
-    }
-
-    /* Tightens up the high score display area box layout */
-    .menu-stats {
-        margin-bottom: 6px !important;
-    }
-    .high-score-box {
-        padding: 4px !important;
-        font-size: 0.65rem !important;
+    /* Direct prompt for choose color palette */
+    .skin-prompt {
+        font-size: 0.5rem !important;
         margin-bottom: 2px !important;
     }
-    .control-help {
-        font-size: 0.55rem !important;
+
+    /* Smaller custom color swatches row layout box */
+    #colorPalette {
+        gap: 6px !important;
+        margin-bottom: 4px !important;
+    }
+    .colorOption {
+        width: 20px !important;  /* Very cute tiny round boxes */
+        height: 20px !important;
+        border-radius: 5px !important;
     }
 
-    /* LAUNCH MISSION BUTTON: Compact, centered and 100% visible */
+    /* Smashes high record score panel box framework tight */
+    .menu-stats {
+        margin-bottom: 4px !important;
+    }
+    .high-score-box {
+        padding: 3px !important;
+        font-size: 0.6rem !important;
+        margin-bottom: 1px !important;
+    }
+    .control-help {
+        font-size: 0.5rem !important;
+    }
+
+    /* LAUNCH MISSION BUTTON: Tiny, portable, and completely clear at the bottom area frame */
     .action-container {
-        height: 32px !important;
-        margin-top: 2px !important;
+        height: 28px !important;
+        margin-top: 1px !important;
     }
     #play-btn {
-        padding: 6px 30px !important;
-        font-size: 0.75rem !important;
+        padding: 4px 24px !important;
+        font-size: 0.68rem !important;
         letter-spacing: 1px !important;
-        border-radius: 15px !important;
+        border-radius: 12px !important;
     }
 }
 
