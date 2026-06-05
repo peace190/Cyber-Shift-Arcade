@@ -55,7 +55,7 @@ canvas {
     #rotate-device-screen { display: flex; }
 }
 
-/* CENTERING SOLUTION: Grid placement forces card to absolute horizontal/vertical center */
+/* CENTERING SOLUTION */
 #start-menu {
     position: fixed;
     top: 0; left: 0;
@@ -72,6 +72,7 @@ canvas {
     padding: 12px;
 }
 
+/* PC Default UI Window Settings */
 .menu-content {
     text-align: center;
     display: flex;
@@ -200,84 +201,88 @@ canvas {
 #fire-btn { width: 90px; height: 90px; background: rgba(255, 0, 85, 0.08); border: 3px solid #ff0055; border-radius: 50%; color: white; font-weight: bold; font-size: 0.9rem; touch-action: none; box-shadow: 0 0 15px rgba(255,0,85,0.2); }
 #fire-btn:active { background: #ff0055; }
 
-/* Tight, small, and portable design for mobile landscape */
+
+/* --- THE MOBILE LANDSCAPE FIX: CORRECT SELECTORS LINKED --- */
 @media screen and (max-device-width: 932px) and (orientation: landscape), 
        screen and (max-height: 500px) and (orientation: landscape) {
 
-    /* Make the main container card short and compact */
-    .menu-card, .system-portal-container {
-        max-width: 75vw !important;  /* Brings the sides in */
-        height: 78vh !important;     /* Strongly limits the height */
-        padding: 10px 20px !important; /* Tiny padding to save space */
-        margin: auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important; /* Forces the start button to stay inside at the bottom */
-        box-sizing: border-box !important;
+    /* Aggressively shrinks the main layout wrapper card */
+    .menu-content {
+        max-width: 440px !important;
+        height: 82vh !important;       /* Locks height safely inside the viewport */
+        padding: 8px 16px !important;   /* Tight margins to clear space */
+        justify-content: space-between !important;
     }
 
-    /* Shrink the main "CYBER SHIFT" title significantly */
-    .menu-card h1, .game-title {
-        font-size: 5.5vh !important; 
-        margin: 2px 0 !important;
-        padding: 0 !important;
-    }
-
-    /* Shrink sub-headers ("AUDIO MATRIX: ONLINE") */
-    .system-status, .audio-matrix, .menu-card p {
-        font-size: 2vh !important;
-        margin: 2px 0 !important;
-    }
-
-    /* Small config gear icon and text */
-    .config-btn, #configBtn {
+    /* Pulls down gear configuration layout */
+    #settings-gear-btn {
+        top: 6px !important;
+        right: 10px !important;
         padding: 2px 8px !important;
-        font-size: 1.8vh !important;
+        font-size: 0.6rem !important;
     }
 
-    /* Shrink color selection text */
-    .color-label, .choose-avatar-text {
-        font-size: 1.8vh !important;
-        margin: 2px 0 !important;
+    /* Version tracking tag */
+    .brand-badge {
+        font-size: 0.55rem !important;
+        margin-bottom: 2px !important;
+        padding: 1px 8px !important;
     }
 
-    /* Make color boxes small and cute */
-    .avatar-colors-row, .color-selection-container {
+    /* Shrinks the "CYBER SHIFT" main header text size */
+    .neon-title {
+        font-size: 1.4rem !important;
+        letter-spacing: 3px !important;
+        margin-bottom: 0px !important;
+    }
+
+    /* Shrinks the secondary sub-heading line */
+    .neon-subtitle {
+        font-size: 0.6rem !important;
+        margin-bottom: 6px !important;
+    }
+
+    /* Core prompt info message */
+    .skin-prompt {
+        font-size: 0.55rem !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Shrinks individual avatar profile color selections */
+    #colorPalette {
         gap: 8px !important;
-        margin: 4px 0 !important;
+        margin-bottom: 6px !important;
     }
-
-    .color-swatch, .color-btn {
-        width: 5vh !important;  /* Much smaller squares */
-        height: 5vh !important;
+    .colorOption {
+        width: 24px !important;
+        height: 24px !important;
         border-radius: 6px !important;
     }
 
-    /* Compress the "SECTOR RECORD" display box */
-    .sector-record-box, .all-time-best, .record-box {
-        padding: 4px 10px !important;
-        font-size: 2vh !important;
-        margin: 4px auto !important;
-        width: 70% !important;   /* Narrower box */
+    /* Tightens up the high score display area box layout */
+    .menu-stats {
+        margin-bottom: 6px !important;
+    }
+    .high-score-box {
+        padding: 4px !important;
+        font-size: 0.65rem !important;
+        margin-bottom: 2px !important;
+    }
+    .control-help {
+        font-size: 0.55rem !important;
     }
 
-    /* Drop or shrink helper instructions */
-    .controls-hint, .pc-mobile-info {
-        font-size: 1.5vh !important;
-        margin: 2px 0 !important;
-        opacity: 0.6;
+    /* LAUNCH MISSION BUTTON: Compact, centered and 100% visible */
+    .action-container {
+        height: 32px !important;
+        margin-top: 2px !important;
     }
-
-    /* The Start Button: Portable and completely visible */
-    .launch-btn, .action-button, .reboot-btn, #startBtn {
-        font-size: 2.5vh !important;   /* Clear but compact text */
-        padding: 6px 24px !important;  /* Short height, comfortable width */
-        min-width: 35vw !important;
-        height: 6vh !important;        /* Strict small height limit */
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 4px auto 0 auto !important; /* Anchors it safely at the bottom */
+    #play-btn {
+        padding: 6px 30px !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 1px !important;
+        border-radius: 15px !important;
     }
 }
+
 @keyframes spin { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
